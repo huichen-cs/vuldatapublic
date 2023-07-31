@@ -1,7 +1,7 @@
 #!/bin/bash
 
 function help() {
-	echo "Usage: run_bertsap_gn_shift [-f|--n_first <n_first>] [-l|--n_last <n_last>]"
+	echo "Usage: run_hmsc_bertsap_gn_shift_train [-f|--n_first <n_first>] [-l|--n_last <n_last>]"
 	echo "           [-s|--step_size <step_size>] [-b|--im_ratio <im_ratio>]"
 	echo "           [-r|--rerun] [-d|--new_data] [-p|--reproduce <true|false>]"
 	echo "       the configuration file and the checkpoint for n_first must exists."
@@ -222,9 +222,9 @@ for ((n=n_first; n<=n_last; n++)); do
 			echo "INFO: clean_data \"${ckpt_d}\": success"
 		fi
 		if [[ ${rerun} == true ]]; then
-			echo "INFO: PYTHONPATH=uncertainty/src/ python uncertainty/src/bert_sapdata_shift_train.py -c ${init_ini_fp}"
-			if ! PYTHONPATH=uncertainty/src/ python uncertainty/src/bert_sapdata_shift_train.py -c "${init_ini_fp}"; then
-				echo "ERROR: bert_sapdata_shift_train.py failed"
+			echo "INFO: PYTHONPATH=uncertainty/src/ python uncertainty/src/hmsc_bert_sapdata_shift_train.py -c ${init_ini_fp}"
+			if ! PYTHONPATH=uncertainty/src/ python uncertainty/src/hmsc_bert_sapdata_shift_train.py -c "${init_ini_fp}"; then
+				echo "ERROR: hmsc_bert_sapdata_shift_train.py failed"
 				exit 1
 			fi
 		fi
@@ -242,9 +242,9 @@ for ((n=n_first; n<=n_last; n++)); do
 				echo "ERROR: configuration file ${ini_fp} inaccessible"
 				exit 1
 			fi
-			echo "INFO: PYTHONPATH=uncertainty/src/ python uncertainty/src/bert_sapdata_shift_train.py -c ${ini_fp}"
-			if ! PYTHONPATH=uncertainty/src/ python uncertainty/src/bert_sapdata_shift_train.py -c "${ini_fp}"; then
-				echo "ERROR: bert_sapdata_shift_train.py failed"
+			echo "INFO: PYTHONPATH=uncertainty/src/ python uncertainty/src/hmsc_bert_sapdata_shift_train.py -c ${ini_fp}"
+			if ! PYTHONPATH=uncertainty/src/ python uncertainty/src/hmsc_bert_sapdata_shift_train.py -c "${ini_fp}"; then
+				echo "ERROR: hmsc_bert_sapdata_shift_train.py failed"
 				rm -rf "${ckpt_d}"
 				exit 1
 			fi
@@ -255,9 +255,9 @@ for ((n=n_first; n<=n_last; n++)); do
 			fi
 		else
 			if [[ ${rerun} == true ]]; then
-				echo "INFO: PYTHONPATH=uncertainty/src/ python uncertainty/src/bert_sapdata_shift_train.py -c ${ini_fp}"
-				if ! PYTHONPATH=uncertainty/src/ python uncertainty/src/bert_sapdata_shift_train.py -c "${ini_fp}"; then
-					echo "ERROR: bert_sapdata_shift_train.py failed"
+				echo "INFO: PYTHONPATH=uncertainty/src/ python uncertainty/src/hmsc_bert_sapdata_shift_train.py -c ${ini_fp}"
+				if ! PYTHONPATH=uncertainty/src/ python uncertainty/src/hmsc_bert_sapdata_shift_train.py -c "${ini_fp}"; then
+					echo "ERROR: hmsc_bert_sapdata_shift_train.py failed"
 					exit 1
 				fi
 			else

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 function help() {
-	echo "Usage: run_hmsc_bertvcm_gn_shift_train [-f|--n_first <n_first>] [-l|--n_last <n_last>]"
+	echo "Usage: run_htsc_bertsap_gn_shift [-f|--n_first <n_first>] [-l|--n_last <n_last>]"
 	echo "           [-s|--step_size <step_size>] [-b|--im_ratio <im_ratio>]"
 	echo "           [-r|--rerun] [-d|--new_data] [-p|--reproduce <true|false>]"
 	echo "       the configuration file and the checkpoint for n_first must exists."
@@ -173,19 +173,23 @@ function make_init_ini_file()
 
 trap cleanup SIGINT
 
-config_root=uncertainty/config/bertps/shift
-ckpt_root=uq_testdata_ckpt/bertps/shift/
-init_ini_im_1=bertps_1.0_im_1_train_0.9_sigma_0.ini
-init_ini=bertps_1.0_im_${im_ratio}_train_0.9_sigma_0.ini
+config_root=uncertainty/config/htscbertsap/shift
+ckpt_root=uq_testdata_ckpt/htscbertsap/shift/
+init_ini_im_1=bertsap_1.0_im_1_train_0.9_sigma_0.ini
+init_ini=bertsap_1.0_im_${im_ratio}_train_0.9_sigma_0.ini
 for ((n=n_first; n<=n_last; n++)); do
 	if [ "${step_size}" == "0.01" ]; then
 		sigma=$(echo "${init_ini}" | cut -d'_' -f8 | sed -e 's/.ini//g' | awk -v n="$n" '{s=$0; if (n > 0) s=n/100+$0; print s;}')
 	else
 		sigma=$(echo "${init_ini}" | cut -d'_' -f8 | sed -e 's/.ini//g' | awk -v n="$n" -v t="${step_size}" '{s=$0; if (n > 0) s=n*t+$0; print s;}')
 	fi
+	if [ -z "${sigma}" ]; then
+		echo "ERROR: _sigma is unset, exit ..."
+		exit 1
+	fi
 	echo "INFO: sigma: ${sigma}"
-	ckpt_d=${ckpt_root}/en_bertps_1.0_im_${im_ratio}_train_0.9_sigma_${sigma}
-	ini_fp=${config_root}/bertps_1.0_im_${im_ratio}_train_0.9_sigma_${sigma}.ini
+	ckpt_d=${ckpt_root}/en_bertsap_1.0_im_${im_ratio}_train_0.9_sigma_${sigma}
+	ini_fp=${config_root}/bertsap_1.0_im_${im_ratio}_train_0.9_sigma_${sigma}.ini
 	init_ini_fp=${config_root}/${init_ini}
 	init_ini_im_1_fp=${config_root}/${init_ini_im_1}
 
@@ -216,9 +220,9 @@ for ((n=n_first; n<=n_last; n++)); do
 			echo "INFO: clean_data \"${ckpt_d}\": success"
 		fi
 		if [ ${rerun} == true ]; then
-			echo "INFO: PYTHONPATH=uncertainty/src/ python uncertainty/src/hmsc_bert_vcmdata_shift_train.py -c ${init_ini_fp}"
-			if ! PYTHONPATH=uncertainty/src/ python uncertainty/src/hmsc_bert_vcmdata_shift_train.py -c "${init_ini_fp}"; then
-				echo "ERROR: hmsc_ps_vcmdata_shift_train.py failed"
+			echo "INFO: PYTHONPATH=uncertainty/src/ python uncertainty/src/htsc_bert_sapdata_shift_train.py -c ${init_ini_fp}"
+			if ! PYTHONPATH=uncertainty/src/ python uncertainty/src/htsc_bert_sapdata_shift_train.py -c "${init_ini_fp}"; then
+				echo "ERROR: htsc_bert_sapdata_shift_train.py failed"
 				exit 1
 			fi
 		fi
@@ -236,22 +240,22 @@ for ((n=n_first; n<=n_last; n++)); do
 				echo "ERROR: configuration file ${ini_fp} inaccessible"
 				exit 1
 			fi
-			echo "INFO: PYTHONPATH=uncertainty/src/ python uncertainty/src/hmsc_bert_vcmdata_shift_train.py -c ${ini_fp}"
-			if ! PYTHONPATH=uncertainty/src/ python uncertainty/src/hmsc_bert_vcmdata_shift_train.py -c "${ini_fp}"; then
-				echo "ERROR: hmsc_bert_vcmdata_shift_train.py failed"
+			echo "INFO: PYTHONPATH=uncertainty/src/ python uncertainty/src/htsc_bert_sapdata_shift_train.py -c ${ini_fp}"
+			if ! PYTHONPATH=uncertainty/src/ python uncertainty/src/htsc_bert_sapdata_shift_train.py -c "${ini_fp}"; then
+				echo "ERROR: htsc_bert_sapdata_shift_train.py failed"
 				rm -rf "${ckpt_d}"
 				exit 1
 			fi
 
 			if [ ! -d "${ckpt_d}" ]; then
-				echo "ERROR: checkpoint at ${ckpt_d} still inaccessbile, hmsc_bert_vcmdata_shift_train.py failed"
+				echo "ERROR: checkpoint at ${ckpt_d} still inaccessbile, bert_sapdata_shift_train.py failed"
 				exit 1
 			fi
 		else
 			if [ ${rerun} == true ]; then
-				echo "INFO: PYTHONPATH=uncertainty/src/ python uncertainty/src/hmsc_bert_vcmdata_shift_train.py -c ${ini_fp}"
-				if ! PYTHONPATH=uncertainty/src/ python uncertainty/src/hmsc_bert_vcmdata_shift_train.py -c "${ini_fp}"; then
-					echo "ERROR: hmsc_bert_vcmdata_shift_train.py failed"
+				echo "INFO: PYTHONPATH=uncertainty/src/ python uncertainty/src/htsc_bert_sapdata_shift_train.py -c ${ini_fp}"
+				if ! PYTHONPATH=uncertainty/src/ python uncertainty/src/htsc_bert_sapdata_shift_train.py -c "${ini_fp}"; then
+					echo "ERROR: htsc_bert_sapdata_shift_train.py failed"
 					exit 1
 				fi
 			else

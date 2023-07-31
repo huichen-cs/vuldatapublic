@@ -1,12 +1,14 @@
 #!/bin/bash
 
 help() {
-	echo "Usage: run_gn_shift_eval [-f|--n_first <n_first>]"
+	echo "Usage: run_hmsc_bertvcm_gn_shift_eval [-f|--n_first <n_first>]"
 	echo "          [-l|--n_last <n_last>] [-s|--step_size <step_size>]"
 	echo "          [-b|--im_ratio <im_ratio>] [-m|--uq_method <uq_method>]"
 	echo "          [-c|--select_criteria <selection_criteria>]"
-	echo "       the configuration file and the checkpoint for all runs must exist to evaluate UQ metrics."
-	echo "       selction_criteria is only relevant when the uq_method is either vanilla or dropout."
+	echo "       the configuration file and the checkpoint for all runs"
+	echo "       must exist to evaluate UQ metrics."
+	echo "       selction_criteria is only relevant when the uq_method is"
+	echo "       either vanilla or dropout."
 }
 
 if [ $# -eq 0 ]; then

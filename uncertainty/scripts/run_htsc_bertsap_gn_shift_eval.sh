@@ -1,12 +1,14 @@
 #!/bin/bash
 
 help() {
-	echo "Usage: run_bertsap_gn_shift_eval [-f|--n_first <n_first>]"
+	echo "Usage: run_htsc_bertsap_gn_shift_eval [-f|--n_first <n_first>]"
 	echo "          [-l|--n_last <n_last>] [-s|--step_size <step_size>]"
 	echo "          [-b|--im_ratio <im_ratio>] [-m|--uq_method <uq_method>]"
 	echo "          [-c|--select_criteria <selection_criteria>]"
-	echo "       the configuration file and the checkpoint for all runs must exist to evaluate UQ metrics."
-	echo "       selction_criteria is only relevant when the uq_method is either vanilla or dropout."
+	echo "       the configuration file and the checkpoint for all runs must"
+	echo "       exist to evaluate UQ metrics."
+	echo "       selction_criteria is only relevant when the uq_method is"
+	echo "       either vanilla or dropout."
 }
 
 if [[ $# -eq 0 ]]; then
@@ -62,8 +64,8 @@ while true; do
 	esac
 done
 
-config_root=uncertainty/config/bertsap/shift
-ckpt_root=uq_testdata_ckpt/bertsap/shift/
+config_root=uncertainty/config/htscbertsap/shift
+ckpt_root=uq_testdata_ckpt/htscbertsap/shift/
 
 eval_from_ckpt() 
 {
@@ -130,15 +132,15 @@ eval_from_ckpt()
 				;;
 		esac
  		if [[ -z "${_select}" ]]; then
-		echo "INFO: PYTHONPATH=uncertainty/src/ python uncertainty/src/hmsc_bert_sapdata_shift_${_py_key}_eval.py -c ${ini_fp}"
-			if ! PYTHONPATH=uncertainty/src/ python "uncertainty/src/hmsc_bert_sapdata_shift_${_py_key}_eval.py" -c "${ini_fp}"; then
-				echo "ERROR: uncertainty/src/hmsc_bert_sapdata_shift_${_py_key}_eval.py failed"
+		echo "INFO: PYTHONPATH=uncertainty/src/ python uncertainty/src/htsc_bert_sapdata_shift_${_py_key}_eval.py -c ${ini_fp}"
+			if ! PYTHONPATH=uncertainty/src/ python "uncertainty/src/htsc_bert_sapdata_shift_${_py_key}_eval.py" -c "${ini_fp}"; then
+				echo "ERROR: uncertainty/src/htsc_bert_sapdata_shift_${_py_key}_eval.py failed"
  				return 1
  			fi	
  		else
-		echo "INFO: PYTHONPATH=uncertainty/src/ python uncertainty/src/hmsc_bert_sapdata_shift_${_py_key}_eval.py -c ${ini_fp} --select ${_select}"
-			if ! PYTHONPATH=uncertainty/src/ python "uncertainty/src/hmsc_bert_sapdata_shift_${_py_key}_eval.py" -c "${ini_fp}" --select "${_select}"; then
-				echo "ERROR: uncertainty/src/hmsc_bert_sapdata_shift_${_py_key}_eval.py failed"
+		echo "INFO: PYTHONPATH=uncertainty/src/ python uncertainty/src/htsc_bert_sapdata_shift_${_py_key}_eval.py -c ${ini_fp} --select ${_select}"
+			if ! PYTHONPATH=uncertainty/src/ python "uncertainty/src/htsc_bert_sapdata_shift_${_py_key}_eval.py" -c "${ini_fp}" --select "${_select}"; then
+				echo "ERROR: uncertainty/src/htsc_bert_sapdata_shift_${_py_key}_eval.py failed"
  				return 1
  			fi	
  		fi	
