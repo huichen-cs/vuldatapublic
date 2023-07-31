@@ -159,7 +159,7 @@ class StochasticBertBinaryClassifierEvaluator(object):
             input_ids, attention_mask, targets = batch
             mu_samples, sigma_samples = self.batch_stochastic_pass(input_ids, attention_mask)
             proba_passes = torch.zeros(self.n_stochastic_passes, len(input_ids), *(self.model.output_shape[1:]))
-            for i,(mu,sigma) in tqdm(enumerate(zip(mu_samples, sigma_samples, strict=True)),
+            for i,(mu,sigma) in tqdm(enumerate(zip(mu_samples, sigma_samples)),
                                      desc='eval_softmax', disable=self.disable_tqdm):
                 _, proba = self.batch_stochastic_softmax(mu,
                                                          sigma,

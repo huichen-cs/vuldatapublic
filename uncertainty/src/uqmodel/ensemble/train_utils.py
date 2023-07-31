@@ -111,7 +111,7 @@ class EnsembleCheckpoint(object):
                     optimizer_ensemble,
                     scheduler_ensemble,
                     criteria_ensemble,
-                    loss_ensemble, strict=True)):
+                    loss_ensemble)):
             self.save_member_checkpoint(index, model, optimizer, scheduler, criteria, loss)
             logger.info(f'saved checkpoint for model {index} to {self._ckpt_path}, loss {self._min_total_loss} -> {total_loss}')
 
@@ -147,8 +147,7 @@ class EnsembleCheckpoint(object):
 
     def save_datasets(self, train_dataset:FeatureDataSet, val_dataset:FeatureDataSet, test_dataset:FeatureDataSet, ps_columns:List) -> None:
         for ds_type,ds in zip(['train', 'val', 'test', 'ps_columns'],
-                              [train_dataset, val_dataset, test_dataset, ps_columns],
-                              strict=True):
+                [train_dataset, val_dataset, test_dataset, ps_columns]):
             file_path = os.path.join(self._ckpt_path, f'dataset_{ds_type}.pickle')
             with open(file_path, 'wb') as f:
                 pickle.dump(ds, f)

@@ -36,7 +36,7 @@ def brier_score(targets, probs):
 
 def curve_triplet_to_dict(xyt, keys):
     curve = dict()
-    for v,k in zip(xyt, keys, strict=True):
+    for v,k in zip(xyt, keys):
         v = v.cpu().tolist() if v.get_device() >= 0 else v.tolist()
         curve[k] = v
     return curve

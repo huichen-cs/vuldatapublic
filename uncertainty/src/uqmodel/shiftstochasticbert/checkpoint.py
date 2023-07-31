@@ -188,8 +188,7 @@ class EnsembleCheckpoint(object):
                       val_dataset:torch.utils.data.TensorDataset,
                       test_dataset:torch.utils.data.TensorDataset) -> None:
         for ds_type,ds in zip(['train', 'val', 'test'],
-                              [train_dataset, val_dataset, test_dataset],
-                              strict=True):
+                              [train_dataset, val_dataset, test_dataset]):
             file_path = self.ckpt_dataset_path(ds_type)
             with open(file_path, 'wb') as f:
                 pickle.dump(ds, f)

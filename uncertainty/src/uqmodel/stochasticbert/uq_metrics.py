@@ -12,7 +12,7 @@ def brier_score(targets: typing.Iterable[torch.Tensor], probs: typing.Iterable[t
     """
     sum = 0
     n = 0
-    for t,p in zip(targets, probs, strict=True):
+    for t,p in zip(targets, probs):
         sum += torch.sum((t - p)**2)
         n += len(t)
         # print(n, sum)
@@ -27,8 +27,7 @@ def compute_accuracy_from_labels(test_label_pred: typing.Iterable[torch.Tensor],
     correct = 0
     total = 0
     for label_batch,pred_label_batch in zip(test_label,
-                                            test_label_pred,
-                                            strict=True):
+                                            test_label_pred):
         correct += torch.sum(label_batch == pred_label_batch)
         total += len(label_batch)
     return correct/total

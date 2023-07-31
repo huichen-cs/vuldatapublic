@@ -49,8 +49,7 @@ class PsData(object):
 
             splits = {'train': None, 'val': None, 'test': None}
             for pos_split,split_name in zip([pos_train, pos_val, pos_test],
-                                            splits.keys(),
-                                            strict=True):
+                                            splits.keys()):
                 neg_split = neg[neg['cve'].isin(pos_split['cve']) & neg['commit'].isin(pos_split['commit'])]
                 pn_split = pd.concat([pos_split, neg_split], ignore_index=True)
                 pn_split['cve_commit'] = pn_split['cve'] + '_' + pn_split['commit']

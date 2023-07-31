@@ -1,3 +1,8 @@
+#
+data/*
+uncertainty/src/plot*.py
+uncertainty/src/table*.py
+uncertainty/scripts/plot*.sh
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

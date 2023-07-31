@@ -139,7 +139,7 @@ def compute_ece(predicted_proba_tensor, test_label_tensor):
 
 def curve_tensors_to_list(xyt, keys):
     curve = dict()
-    for v,k in zip(xyt, keys, strict=True):
+    for v,k in zip(xyt, keys):
         v = v.cpu().numpy().tolist() if v.get_device() >= 0 else v.numpy().tolist()
         curve[k] = v
     return curve

@@ -69,8 +69,7 @@ class BertExperimentDatasets(object):
     def update(self, size, entropy_epistermic, entropy_aleatoric, method, tag):
         self.ckpt.ckpt_tag, self.ckpt.min_total_loss = tag, None
         uq_list = list(zip(range(len(self.pool_dataset)),
-                           entropy_epistermic, entropy_aleatoric,
-                           strict=True))
+                       entropy_epistermic, entropy_aleatoric)):
         if method == 'ehal': # case 1
             sorted_uq_list = sorted(uq_list, key=lambda u: (-u[1], u[2]))
         elif method == 'elah': # case 2

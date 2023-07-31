@@ -39,8 +39,7 @@ class PsFeatureExperimentDatasets(object):
     def update(self, size, entropy_epistermic, entropy_aleatoric, method, tag):
         self.ckpt.ckpt_tag, self.ckpt.min_total_loss = tag, None
         uq_list = list(zip(range(len(self.pool_dataset)), entropy_epistermic,
-                           entropy_aleatoric,
-                           strict=True))        
+                           entropy_aleatoric))
         if method == 'ehal': # case 1
             sorted_uq_list = sorted(uq_list, key=lambda u: (-u[1], u[2]))
         elif method == 'elah': # case 2
@@ -207,8 +206,7 @@ class EnsembleCheckpoint(object):
                     optimizer_ensemble,
                     scheduler_ensemble,
                     criteria_ensemble,
-                    loss_ensemble,
-                    strict=True)):
+                    loss_ensemble)):
             self.save_member_checkpoint(index, model, optimizer, scheduler, criteria, loss)
             logger.info(f'saved checkpoint for model {index} to {self._ckpt_path}, loss {self._min_total_loss} -> {total_loss}')
 
@@ -260,8 +258,7 @@ class EnsembleCheckpoint(object):
 
     def save_datasets(self, train_dataset:FeatureDataSet, val_dataset:FeatureDataSet, test_dataset:FeatureDataSet, ps_columns:List) -> None:
         for ds_type,ds in zip(['train','val', 'test', 'ps_columns'],
-                              [train_dataset, val_dataset, test_dataset, ps_columns],
-                              strict=True):
+                              [train_dataset, val_dataset, test_dataset, ps_columns]):
             file_path = self.ckpt_dataset_path(ds_type)
             with open(file_path, 'wb') as f:
                 pickle.dump(ds, f)
