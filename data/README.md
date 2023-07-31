@@ -7,7 +7,7 @@ Download the data in a zipped data achive from Dropbox at:
 The zip file is about 372MB, and when uncompressed, the data files are about
 2.05GB. It contains three directories:
 
-`psvcm`: VCMatch dataset, containing `csv` files of  PatchScount features
-`bertps`: VCMatch dataset, containing `csv` files of changesets (commit messages and diffs)
-`bertsap`: SAP dataset, containing `csv` files of changesets (commit messages and diffs)
+- `psvcm`: VCMatch dataset, containing `csv` files of  PatchScount features
+- `bertps`: VCMatch dataset, containing `csv` files of changesets (commit messages and diffs)
+- `bertsap`: SAP dataset, containing `csv` files of changesets (commit messages and diffs)
 
