@@ -12,7 +12,7 @@ from uqmodel.shiftbert.experiment import (
 )
 from uqmodel.shiftbert.logging_utils import init_logging
 from uqmodel.shiftbert.eval_utils import EnsembleBertClassifierEvalautor
-from bert_psdata_shift_train import get_trained_ensemble_model
+from hmsc_bert_vcmdata_shift_train import get_trained_ensemble_model
 
 
 logger = logging.getLogger(__name__)

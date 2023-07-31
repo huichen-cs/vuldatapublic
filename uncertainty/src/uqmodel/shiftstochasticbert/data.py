@@ -65,7 +65,6 @@ class TextClassificationDataset(torch.utils.data.TensorDataset):
         input_ids = encoding['input_ids'][0]
         attention_mask = encoding['attention_mask'][0]
         labels = torch.tensor(label)
-        # trunk-ignore(bandit/B101)
         assert(len(input_ids) == len(attention_mask) == self.max_len)
         return input_ids, attention_mask, labels
 
@@ -101,7 +100,7 @@ class BertExperimentDatasets(object):
             )
 
     def _generate_datasets(self):
-        if self.dataset_name == 'PSDATA':
+        if self.dataset_name == 'PSDATA' or self.dataset_name == 'VCMDATA':
             bert_data = PsData(self.config.data.data_dir)
             logger.info('loading data set {}'.format(self.dataset_name))
         elif self.dataset_name == 'SAPDATA':

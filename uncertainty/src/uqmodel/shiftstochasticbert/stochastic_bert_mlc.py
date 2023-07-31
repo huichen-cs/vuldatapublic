@@ -5,7 +5,9 @@ import torch
 from transformers import AutoModel
 from typing import Any, Sequence, Union, Dict
 from uqmodel.shiftstochasticbert.datashift import DataShift
-
+from uqmodel.shiftstochasticbert.stochastic_metrics import (
+    softmax_batch
+)
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +48,6 @@ class StochasticMultiLayerClassifierHead(torch.nn.Module):
         """
         super().__init__()
         self.noiser = noiser
-        # trunk-ignore(bandit/B101)
         assert len(neurons) == len(dropouts)
 
         #                         +-- mu module -> mu logits
@@ -156,16 +157,16 @@ class StochasticBertBinaryClassifier(torch.nn.Module):
     def load_classifier_state_dict(self, state_dict:Dict[str, Any]):
         self.classifier.load_state_dict(state_dict)
 
-    # def predict(self, input_ids, attention_mask):
-    #     with torch.no_grad():
-    #         logits_mu, logits_sigma = self.forward(input_ids, attention_mask)
-    #         proba = torch.nn.functional.softmax(logits, dim=1)
-    #         confidence, labels = torch.max(proba, dim=1)
-    #     return logits, proba, confidence, labels
+    def predict(self, input_ids, attention_mask):
+        with torch.no_grad():
+            logits_mu, logits_sigma = self.forward(input_ids, attention_mask)
+            proba = torch.nn.functional.softmax(logits_mu, dim=1)
+            confidence, labels = torch.max(proba, dim=1)
+        return logits_mu, logits_sigma, proba, confidence, labels
 
-    # def predict_proba(self, input_ids, attention_mask):
-    #     with torch.no_grad():
-    #         logits = self.forward(input_ids, attention_mask)
-    #         proba = torch.nn.functional.softmax(logits, dim=1)
-    #     return proba
+    def predict_sampling_proba(self, input_ids, attention_mask, n_samples):
+        with torch.no_grad():
+            logits_mu, logits_sigma = self.forward(input_ids, attention_mask)
+            _, proba = softmax_batch(logits_mu, logits_sigma, n_samples, passed_log_sigma=False)
+        return proba
 
