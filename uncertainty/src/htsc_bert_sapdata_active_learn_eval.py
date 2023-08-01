@@ -30,48 +30,72 @@ from datetime import datetime
 from uqmodel.stochasticbert.logging_utils import init_logging, get_global_logfilename
 from uqmodel.stochasticbert.data import (
     BertExperimentDatasets,
-    BertExperimentDataLoaders
+    BertExperimentDataLoaders,
 )
 from uqmodel.stochasticbert.dataloader_utils import get_test_label
 from uqmodel.stochasticbert.ensemble_bert import StochasticEnsembleBertClassifier
-from uqmodel.stochasticbert.experiment import ExperimentConfig, init_argparse, setup_reproduce
+from uqmodel.stochasticbert.experiment import (
+    ExperimentConfig,
+    init_argparse,
+    setup_reproduce,
+)
 from uqmodel.stochasticbert.eval_utils import (
     EnsembleDisentangledUq,
     result_dict_to_json,
-    compute_uq_eval_metrics
+    compute_uq_eval_metrics,
 )
 from htsc_bert_sapdata_active_learn_test import get_trained_ensemble_model
 
 
 logger = logging.getLogger(__name__)
 
+
 def get_experiment_config(parser=None):
     return ExperimentConfig()
 
+
 def get_extended_argparser() -> argparse.ArgumentParser:
     parser = init_argparse()
-    parser.add_argument('-a', '--action',
-                        help='active learning action in {}'.format(
-                            ['all', 'init', 'ehal', 'elah', 'ehah', 'elal', 'aleh', 'ahel', 'aheh','alel']
-                        ))
+    parser.add_argument(
+        "-a",
+        "--action",
+        help="active learning action in {}".format(
+            [
+                "all",
+                "init",
+                "ehal",
+                "elah",
+                "ehah",
+                "elal",
+                "aleh",
+                "ahel",
+                "aheh",
+                "alel",
+            ]
+        ),
+    )
     return parser
 
-def get_extended_args(config:ExperimentConfig, parser:argparse.ArgumentParser=None) -> ExperimentConfig:
+
+def get_extended_args(
+    config: ExperimentConfig, parser: argparse.ArgumentParser = None
+) -> ExperimentConfig:
     if not parser:
         parser = init_argparse()
     args = parser.parse_args()
     if args.action:
         config.action = args.action
     else:
-        config.action = 'all'
+        config.action = "all"
     return config
+
 
 def setup_experiment() -> ExperimentConfig:
     parser = get_extended_argparser()
     config = get_experiment_config(parser)
 
     if not os.path.exists(config.data_dir):
-        raise ValueError(f'data_dir {config.data_dir} inaccessible')
+        raise ValueError(f"data_dir {config.data_dir} inaccessible")
 
     if config.reproduce:
         setup_reproduce(config)
@@ -87,48 +111,56 @@ def setup_experiment() -> ExperimentConfig:
     else:
         num_workers = config.trainer_max_dataloader_workers
     config.num_workers = num_workers
-    
-    config.trainer_use_model = 'use_checkpoint'
+
+    config.trainer_use_model = "use_checkpoint"
 
     config = get_extended_args(config, parser)
     return config
 
 
 def get_datetime_jobid():
-    date_time = datetime.now().strftime('%Y%m%d%H%M%S')
+    date_time = datetime.now().strftime("%Y%m%d%H%M%S")
     return date_time
 
 
-
-
-def compute_eval_metrics(ensemble:StochasticEnsembleBertClassifier, test_dataloader, config):
-    test_proba_pred_mean = list([p.cpu() for p in
-        ensemble.predict_mean_proba(test_dataloader,
-                                    config.trainer_aleatoric_samples,
-                                    device=config.device)])
+def compute_eval_metrics(
+    ensemble: StochasticEnsembleBertClassifier, test_dataloader, config
+):
+    test_proba_pred_mean = list(
+        [
+            p.cpu()
+            for p in ensemble.predict_mean_proba(
+                test_dataloader, config.trainer_aleatoric_samples, device=config.device
+            )
+        ]
+    )
     test_conf_pred_list, test_label_pred_list = [], []
     for confs, labels in ensemble.compute_class_with_conf(test_proba_pred_mean):
         test_conf_pred_list.append(confs)
         test_label_pred_list.append(labels)
-    
+
     test_conf_pred_tensor = torch.cat(test_conf_pred_list, dim=0).cpu()
     test_label_pred_tensor = torch.cat(test_label_pred_list, dim=0).cpu()
     test_label_tensor = get_test_label(test_dataloader, device=config.device).cpu()
 
     predicted_proba_tensor = torch.cat(test_proba_pred_mean, dim=0).cpu()
-    result_dict = compute_uq_eval_metrics(config,
-                                          predicted_proba_tensor,
-                                          test_label_pred_tensor,
-                                          test_label_tensor,
-                                          py_script=os.path.basename(__file__),
-                                          metrics_list=['acc', 'precision', 'recall', 'f1', 'mcc', 'auprc', 'auroc'])
-    
+    result_dict = compute_uq_eval_metrics(
+        config,
+        predicted_proba_tensor,
+        test_label_pred_tensor,
+        test_label_tensor,
+        py_script=os.path.basename(__file__),
+        metrics_list=["acc", "precision", "recall", "f1", "mcc", "auprc", "auroc"],
+    )
+
     uq_list = []
-    uq = EnsembleDisentangledUq(ensemble,
-                                test_dataloader,
-                                config.trainer_aleatoric_samples,
-                                device=config.device,
-                                mp=True)
+    uq = EnsembleDisentangledUq(
+        ensemble,
+        test_dataloader,
+        config.trainer_aleatoric_samples,
+        device=config.device,
+        mp=True,
+    )
     (
         proba_std_aleatoric,
         proba_mean_aleatoric,
@@ -141,10 +173,8 @@ def compute_eval_metrics(ensemble:StochasticEnsembleBertClassifier, test_dataloa
         muinfo_all,
         mu_mean,
         sigma_aleatoric,
-        sigma_epistermic
-    ) = (
-        uq.compute_uq()
-    )
+        sigma_epistermic,
+    ) = uq.compute_uq()
     for idx in range(len(test_label_tensor)):
         target = test_label_tensor[idx].item()
         label_pred = test_label_pred_tensor[idx].item()
@@ -165,48 +195,62 @@ def compute_eval_metrics(ensemble:StochasticEnsembleBertClassifier, test_dataloa
         if not sigma_aleatoric[idx].requires_grad:
             logits_sigma_aleatoric = sigma_aleatoric[idx].numpy().tolist()
         else:
-            logits_sigma_aleatoric = sigma_aleatoric[idx].detach().cpu().numpy().tolist()
+            logits_sigma_aleatoric = (
+                sigma_aleatoric[idx].detach().cpu().numpy().tolist()
+            )
         if not sigma_epistermic[idx].requires_grad:
             logits_sigma_epistermic = sigma_epistermic[idx].numpy().tolist()
         else:
-            logits_sigma_epistermic = sigma_epistermic[idx].detach().cpu().numpy().tolist()
-        
+            logits_sigma_epistermic = (
+                sigma_epistermic[idx].detach().cpu().numpy().tolist()
+            )
+
         if target == label_pred and target == 1:
-            quadrant = 'TP'
+            quadrant = "TP"
         elif target == label_pred and target == 0:
-            quadrant = 'TN'
+            quadrant = "TN"
         elif target != label_pred and label_pred == 1:
-            quadrant = 'FP'
-        else: 
-            quadrant = 'FN'
+            quadrant = "FP"
+        else:
+            quadrant = "FN"
         uq_dict = {
-            'index': idx,
-            'target': target,
-            'label_pred': label_pred,
-            'label_conf': label_conf,
-            'proba_ale': proba_ale,
-            'proba_ale_std': proba_ale_std,
-            'entropy_ale': entropy_ale,
-            'proba_epi': proba_epi,
-            'proba_epi_std': proba_epi_std,
-            'entropy_epi': entropy_epi,
-            'proba_std': proba_std_instance,
-            'entropy':  entropy_instance,
-            'muinfo': muinfo_instance,
-            'mu_mean': logits_mu_mean,
-            'sigma_aleatoric': logits_sigma_aleatoric,
-            'sigma_epistermic': logits_sigma_epistermic,
-            'quadrant': quadrant
+            "index": idx,
+            "target": target,
+            "label_pred": label_pred,
+            "label_conf": label_conf,
+            "proba_ale": proba_ale,
+            "proba_ale_std": proba_ale_std,
+            "entropy_ale": entropy_ale,
+            "proba_epi": proba_epi,
+            "proba_epi_std": proba_epi_std,
+            "entropy_epi": entropy_epi,
+            "proba_std": proba_std_instance,
+            "entropy": entropy_instance,
+            "muinfo": muinfo_instance,
+            "mu_mean": logits_mu_mean,
+            "sigma_aleatoric": logits_sigma_aleatoric,
+            "sigma_epistermic": logits_sigma_epistermic,
+            "quadrant": quadrant,
         }
         uq_list.append(uq_dict)
-    result_dict['uq'] = uq_list
+    result_dict["uq"] = uq_list
     return result_dict
+
 
 def prepare_for_json_dump(result_dict):
     for k in result_dict.keys():
-        result_dict[k] = result_dict[k].cpu().numpy() if isinstance(result_dict[k], torch.Tensor) else result_dict[k]
-        result_dict[k] = result_dict[k].tolist() if isinstance(result_dict[k], np.ndarray) else result_dict[k]
+        result_dict[k] = (
+            result_dict[k].cpu().numpy()
+            if isinstance(result_dict[k], torch.Tensor)
+            else result_dict[k]
+        )
+        result_dict[k] = (
+            result_dict[k].tolist()
+            if isinstance(result_dict[k], np.ndarray)
+            else result_dict[k]
+        )
     return result_dict
+
 
 def result_to_json(result_dict):
     for k in result_dict:
@@ -221,78 +265,99 @@ def result_to_json(result_dict):
             result = prepare_for_json_dump(result)
             result_dict[k] = result
         else:
-            raise ValueError('unsupported data type {}'.format(type(result)))
+            raise ValueError("unsupported data type {}".format(type(result)))
     json = result_dict_to_json(result_dict)
     return json
+
 
 def _mp_run_one_evaluation(config, run_datasets, queue, logfilename):
     init_logging(logfilename, append=True)
     run_dataloaders = BertExperimentDataLoaders(config, run_datasets, train=False)
     ensemble = get_trained_ensemble_model(config, run_datasets, load_trained=True)
-    eval_metrics = compute_eval_metrics(ensemble, run_dataloaders.test_dataloader, config)
+    eval_metrics = compute_eval_metrics(
+        ensemble, run_dataloaders.test_dataloader, config
+    )
     queue.put(eval_metrics)
 
+
 def run_one_evaluation(config, run_datasets):
-    print_allocation('enter run_one_evaluation', print)
+    print_allocation("enter run_one_evaluation", print)
 
     # mp.set_sharing_strategy('file_system')
-    mp.set_sharing_strategy('file_descriptor')
-    mp.set_start_method(method='forkserver', force=True)
+    mp.set_sharing_strategy("file_descriptor")
+    mp.set_start_method(method="forkserver", force=True)
     manager = mp.Manager()
     queue = manager.Queue()
     # ctx = mp.get_context('spawn')
-    ctx = mp.get_context('forkserver')
-    p = ctx.Process(target=_mp_run_one_evaluation,
-                    args=(config, run_datasets, queue, get_global_logfilename()))
+    ctx = mp.get_context("forkserver")
+    p = ctx.Process(
+        target=_mp_run_one_evaluation,
+        args=(config, run_datasets, queue, get_global_logfilename()),
+    )
     p.start()
     eval_metrics = queue.get(block=True, timeout=None)
     p.join()
 
-    print_allocation('leave run_one_evaluation, after cuda.synchronize()', print)
+    print_allocation("leave run_one_evaluation, after cuda.synchronize()", print)
     return eval_metrics
 
+
 def _run_one_evaluation(config, run_datasets):
-    print_allocation('enter run_one_evaluation', print)
+    print_allocation("enter run_one_evaluation", print)
     run_dataloaders = BertExperimentDataLoaders(config, run_datasets, train=False)
-    print_allocation('in run_one_evaluation, got data loaders', print)
+    print_allocation("in run_one_evaluation, got data loaders", print)
     ensemble = get_trained_ensemble_model(config, run_datasets, load_trained=True)
-    print_allocation('in run_one_evaluation, got model', print)
-    eval_metrics = compute_eval_metrics(ensemble, run_dataloaders.test_dataloader, device=config.device)
-    print_allocation('in run_one_evaluation, got eval metrics', print)
+    print_allocation("in run_one_evaluation, got model", print)
+    eval_metrics = compute_eval_metrics(
+        ensemble, run_dataloaders.test_dataloader, device=config.device
+    )
+    print_allocation("in run_one_evaluation, got eval metrics", print)
     if ensemble:
         for model in ensemble:
             model.cpu()
         del ensemble
     if run_dataloaders:
         del run_dataloaders
-    print_allocation('in run_one_evaluation, before cuda.synchronize()', print)
+    print_allocation("in run_one_evaluation, before cuda.synchronize()", print)
     torch.cuda.synchronize()
     gc.collect()
     torch.cuda.empty_cache()
-    print_allocation('leave run_one_evaluation, after cuda.synchronize()', print)
+    print_allocation("leave run_one_evaluation, after cuda.synchronize()", print)
     return eval_metrics
 
 
 def print_allocation(title, disp):
     bytes = torch.cuda.memory_allocated(torch.device("cuda"))
-    disp('{}: CUDA memory allocated: {} bytes'.format(title, bytes))
+    disp("{}: CUDA memory allocated: {} bytes".format(title, bytes))
+
 
 def debug_cuda_memory():
     for obj in gc.get_objects():
         try:
-            if torch.is_tensor(obj) or (hasattr(obj, 'data') and torch.is_tensor(obj.data)):
-                print('{:<20}'.format(str(obj)), type(obj), obj.size())
-        # trunk-ignore(bandit/B110)
+            if torch.is_tensor(obj) or (
+                hasattr(obj, "data") and torch.is_tensor(obj.data)
+            ):
+                print("{:<20}".format(str(obj)), type(obj), obj.size())
         except Exception:
             pass
-    
-def run_eval_experiment(config:ExperimentConfig) -> dict:
-    print_allocation('ener run_eval_experiment', print)
-    # trunk-ignore(bandit/B101)
-    assert config.trainer_use_model == 'use_checkpoint'
+
+
+def run_eval_experiment(config: ExperimentConfig) -> dict:
+    print_allocation("ener run_eval_experiment", print)
+    assert config.trainer_use_model == "use_checkpoint"
 
     result_dict = dict()
-    for method in ['init', 'ehal', 'elah', 'ehah', 'elal', 'aleh', 'ahel', 'aheh', 'alel']:
+    for method in [
+        "init",
+        "ehal",
+        "elah",
+        "ehah",
+        "elal",
+        "aleh",
+        "ahel",
+        "aheh",
+        "alel",
+    ]:
         result_dict[method] = []
 
     experiment_datasets = BertExperimentDatasets(config, None)
@@ -303,13 +368,13 @@ def run_eval_experiment(config:ExperimentConfig) -> dict:
     # result_dict['init'] = compute_eval_metrics(ensemble,
     #                                         experiment_dataloaders.test_dataloader,
     #                                         device=config.device)
-    result_dict['init'] = eval_metrics
+    result_dict["init"] = eval_metrics
     # del experiment_dataloaders
     # gc.collect()
     # torch.cuda.empty_cache()
 
-    for method in ['ehal', 'elah', 'ehah', 'elal', 'aleh', 'ahel', 'aheh', 'alel']:
-        if method == config.action or config.action == 'all':
+    for method in ["ehal", "elah", "ehah", "elal", "aleh", "ahel", "aheh", "alel"]:
+        if method == config.action or config.action == "all":
             result_list = []
 
             run_datasets = deepcopy(experiment_datasets)
@@ -317,34 +382,39 @@ def run_eval_experiment(config:ExperimentConfig) -> dict:
             # gc.collect()
             # torch.cuda.empty_cache()
 
-            logger.info('begin {} with len(run_dataset): {}, len(pool_dataset): {}'
-                .format(method, len(run_datasets.run_dataset), len(run_datasets.pool_dataset)))
+            logger.info(
+                "begin {} with len(run_dataset): {}, len(pool_dataset): {}".format(
+                    method,
+                    len(run_datasets.run_dataset),
+                    len(run_datasets.pool_dataset),
+                )
+            )
             for i in range(5):
-                logger.info('run {} method for step {}'.format(method, i))
-                run_datasets.update_checkpoint('{}_{}'.format(i, method))
+                logger.info("run {} method for step {}".format(method, i))
+                run_datasets.update_checkpoint("{}_{}".format(i, method))
                 eval_metrics = run_one_evaluation(config, run_datasets)
                 # run_dataloaders = BertExperimentDataLoaders(config, run_datasets, train=False)
 
                 # ensemble = get_trained_ensemble_model(config, run_datasets, load_trained=True)
                 # eval_metrics = compute_eval_metrics(ensemble, run_dataloaders.test_dataloader, device=config.device)
                 result_list.append(eval_metrics)
-                logger.info('done {} at {}'.format(method, i))
-                
+                logger.info("done {} at {}".format(method, i))
+
                 # del run_dataloader, ensemble
                 # gc.collect()
                 # torch.cuda.empty_cache()
-                
+
             result_dict[method] = result_list
     return result_dict
 
-if __name__ == '__main__':
-    print('begin')
+
+if __name__ == "__main__":
+    print("begin")
     init_logging(__file__, append=True)
-    
+
     config = setup_experiment()
-    
+
     result_dict = run_eval_experiment(config)
     json = result_to_json(result_dict)
     print(json)
-    print('done')
-    
+    print("done")

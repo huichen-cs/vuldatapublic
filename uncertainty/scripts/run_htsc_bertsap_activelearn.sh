@@ -17,25 +17,25 @@ function do_action() {
 	fi
 	action=$1
 	echo -n "PYTHONPATH=$PYTHONPATH "
-	echo -n "python uncertainty/src/bert_data_active_learn_test.py "
+	echo -n "python uncertainty/src/htsc_bert_sapdata_active_learn_test.py "
 	echo    "	-c uncertainty/config/active/bert/v1/bert_sap.ini -a ${action}"
-	PYTHONPATH=$PYTHONPATH python uncertainty/src/bert_data_active_learn_test.py \
+	PYTHONPATH=$PYTHONPATH python uncertainty/src/htsc_bert_sapdata_active_learn_test.py \
 		-c uncertainty/config/active/bert/v1/bert_sap.ini -a "${action}"
 }
 
 function do_eval() {
 	if [[ $# -lt 1 ]]; then
 		echo -n "PYTHONPATH=$PYTHONPATH "
-		echo -n "python uncertainty/src/bert_data_active_learn_eval.py "
+		echo -n "python uncertainty/src/htsc_bert_sapdata_active_learn_eval.py "
 		echo    "  -c  uncertainty/config/active/bert/v1/bert_sap.ini"
-		PYTHONPATH=$PYTHONPATH python uncertainty/src/bert_data_active_learn_eval.py \
+		PYTHONPATH=$PYTHONPATH python uncertainty/src/htsc_bert_sapdata_active_learn_eval.py \
 			-c  uncertainty/config/active/bert/v1/bert_sap.ini
 	else
 		action=$1
 		echo -n "PYTHONPATH=$PYTHONPATH "
-		echo -n "python uncertainty/src/bert_data_active_learn_eval.py "
+		echo -n "python uncertainty/src/htsc_bert_sapdata_active_learn_eval.py "
 		echo    "  -c  uncertainty/config/active/bert/v1/bert_sap.ini -a ${action}"
-		PYTHONPATH=$PYTHONPATH python uncertainty/src/bert_data_active_learn_eval.py \
+		PYTHONPATH=$PYTHONPATH python uncertainty/src/htsc_bert_sapdata_active_learn_eval.py \
 			-c  uncertainty/config/active/bert/v1/bert_sap.ini -a "${action}"
 	fi
 }

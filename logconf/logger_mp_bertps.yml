@@ -1,0 +1,71 @@
+version: 1
+objects:
+  queue:
+    class: queue.Queue
+formatters:
+  simple:
+    format: '%(asctime)s - %(name)s - %(processName)s - %(levelname)s - %(message)s'
+handlers:
+  console:
+    class: logging.StreamHandler
+    level: DEBUG
+    formatter: simple
+    stream: ext://sys.stdout
+  file:
+    class: logging.handlers.RotatingFileHandler
+    formatter: simple
+    filename: logging.log
+    maxBytes: 1048576
+    backupCount: 4
+    level: DEBUG
+  queue_listener:
+    class: uqmodel.bert.logging_utils.QueueListenerHandler
+    handlers:
+      - cfg://handlers.file
+    queue: cfg://objects.queue
+loggers:
+  __main__:
+    level: DEBUG
+    handlers:
+      - queue_listener
+    propagate: false
+  uqmodel.bert.bert_mlc:
+    level: DEBUG
+    handlers: 
+      - queue_listener
+    propagate: false
+  uqmodel.bert.checkpoint:
+    level: DEBUG
+    handlers: 
+      - queue_listener
+    propagate: false
+  uqmodel.bert.data:
+    level: DEBUG
+    handlers: 
+      - queue_listener
+    propagate: false
+  uqmodel.bert.early_stoppping:
+    level: DEBUG
+    handlers: 
+      - queue_listener
+    propagate: false
+  uqmodel.bert.ensemble_trainer:
+    level: DEBUG
+    handlers: 
+      - queue_listener
+    propagate: false
+  uqmodel.bert.eval_utils:
+    level: DEBUG
+    handlers: 
+      - queue_listener
+    propagate: false
+  uqmodel.bert.experiment:
+    level: DEBUG
+    handlers: 
+      - queue_listener
+    propagate: false
+root:
+  level: WARN
+  handlers:
+    - console
+    - queue_listener

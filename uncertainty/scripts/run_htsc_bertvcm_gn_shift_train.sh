@@ -173,10 +173,10 @@ function make_init_ini_file()
 
 trap cleanup SIGINT
 
-config_root=uncertainty/config/bertps/shift
-ckpt_root=uq_testdata_ckpt/bertps/shift/
-init_ini_im_1=bertps_1.0_im_1_train_0.9_sigma_0.ini
-init_ini=bertps_1.0_im_${im_ratio}_train_0.9_sigma_0.ini
+config_root=uncertainty/config/htscbertvcm/shift
+ckpt_root=uq_testdata_ckpt/htscbertvcm/shift/
+init_ini_im_1=bertvcm_1.0_im_1_train_0.9_sigma_0.ini
+init_ini=bertvcm_1.0_im_${im_ratio}_train_0.9_sigma_0.ini
 for ((n=n_first; n<=n_last; n++)); do
 	if [ "${step_size}" == "0.01" ]; then
 		sigma=$(echo "${init_ini}" | cut -d'_' -f8 | sed -e 's/.ini//g' | awk -v n="$n" '{s=$0; if (n > 0) s=n/100+$0; print s;}')
@@ -184,8 +184,8 @@ for ((n=n_first; n<=n_last; n++)); do
 		sigma=$(echo "${init_ini}" | cut -d'_' -f8 | sed -e 's/.ini//g' | awk -v n="$n" -v t="${step_size}" '{s=$0; if (n > 0) s=n*t+$0; print s;}')
 	fi
 	echo "INFO: sigma: ${sigma}"
-	ckpt_d=${ckpt_root}/en_bertps_1.0_im_${im_ratio}_train_0.9_sigma_${sigma}
-	ini_fp=${config_root}/bertps_1.0_im_${im_ratio}_train_0.9_sigma_${sigma}.ini
+	ckpt_d=${ckpt_root}/en_bertvcm_1.0_im_${im_ratio}_train_0.9_sigma_${sigma}
+	ini_fp=${config_root}/bertvcm_1.0_im_${im_ratio}_train_0.9_sigma_${sigma}.ini
 	init_ini_fp=${config_root}/${init_ini}
 	init_ini_im_1_fp=${config_root}/${init_ini_im_1}
 

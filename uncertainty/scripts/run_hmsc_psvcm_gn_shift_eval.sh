@@ -1,7 +1,7 @@
 #!/bin/bash
 
 help() {
-	echo "Usage: run_gn_shift_eval [-f|--n_first <n_first>]"
+	echo "Usage: run_hmsc_psvcm_gn_shift_eval [-f|--n_first <n_first>]"
 	echo "          [-l|--n_last <n_last>] [-s|--step_size <step_size>]"
 	echo "          [-b|--im_ratio <im_ratio>] [-m|--uq_method <uq_method>]"
 	echo "          [-c|--select_criteria <selection_criteria>]"
@@ -60,8 +60,8 @@ while true; do
 	esac
 done
 
-config_root=uncertainty/config/shift
-ckpt_root=uq_testdata_ckpt/shift/rpd/
+config_root=uncertainty/config/psvcm/shift
+ckpt_root=uq_testdata_ckpt/psvcm/shift
 
 eval_from_ckpt() 
 {
@@ -80,7 +80,7 @@ eval_from_ckpt()
 		_select_criteria=$5
 	fi
 
-	init_ini=en_vcm_1.0_im_${_im_ratio}_gamma_0.5_train_0.9_sigma_0.ini
+	init_ini=en_psvcm_1.0_im_${_im_ratio}_gamma_0.5_train_0.9_sigma_0.ini
 	for ((n=_n_first; n<=_n_last; n++)); do
 		# _sigma=$(echo "${init_ini}" | cut -d'_' -f11 | sed -e 's/.ini//g' | awk -v n=$n '{s=$0; if (n > 0) s=n/100+$0; print s;}')
 		if [ "${step_size}" == "0.01" ]; then
@@ -89,8 +89,8 @@ eval_from_ckpt()
 			_sigma=$(echo "${init_ini}" | cut -d'_' -f11 | sed -e 's/.ini//g' | awk -v n="$n" -v t="${step_size}" '{s=$0; if (n > 0) s=n*t+$0; print s;}')
 		fi
 		echo "INFO: sigma: ${_sigma}"
-		ckpt_d=${ckpt_root}/en_vcm_1.0_im_${_im_ratio}_gamma_0.5_train_0.9_sigma_${_sigma}
-		ini_fp=${config_root}/en_vcm_1.0_im_${_im_ratio}_gamma_0.5_train_0.9_sigma_${_sigma}.ini
+		ckpt_d=${ckpt_root}/en_psvcm_1.0_im_${_im_ratio}_gamma_0.5_train_0.9_sigma_${_sigma}
+		ini_fp=${config_root}/en_psvcm_1.0_im_${_im_ratio}_gamma_0.5_train_0.9_sigma_${_sigma}.ini
 
 		if [ ! -f "${ini_fp}" ]; then 
 			echo "ERROR: experiment configuration ${ini_fp} inaccessible"
@@ -105,11 +105,11 @@ eval_from_ckpt()
 		case "${_uq_type}" in
 			"vanilla")
 				_py_key="vanilla"
-				_select="--select ${_select_criteria}"
+				_select="${_select_criteria}"
 				;;
 			"dropout")
 				_py_key="dropout"
-				_select="--select ${_select_criteria}"				
+				_select="${_select_criteria}"
 				;;
 			"ensemble")
 				_py_key="ensemble"
@@ -121,11 +121,19 @@ eval_from_ckpt()
 				return 1
 				;;
 		esac
-		echo "INFO: PYTHONPATH=methods/VCMatch/code/utils:uncertainty/src/ python uncertainty/src/ps_data_shift_${_py_key}_eval.py -c ${ini_fp} ${_select}"
-		if ! PYTHONPATH=methods/VCMatch/code/utils:uncertainty/src/ python "uncertainty/src/ps_data_shift_${_py_key}_eval.py" -c "${ini_fp}" "${_select}"; then
-			echo "ERROR: ps_data_shift_${_py_key}_eval.py failed"
-			return 1
-		fi		
+		if [[ -z  ${_select} ]]; then
+			echo "INFO: PYTHONPATH=uncertainty/src/ python uncertainty/src/hmsc_ps_vcmdata_shift_${_py_key}_eval.py -c ${ini_fp}"
+			if ! PYTHONPATH=uncertainty/src/ python "uncertainty/src/hmsc_ps_vcmdata_shift_${_py_key}_eval.py" -c "${ini_fp}"; then
+				echo "ERROR: hmsc_ps_vcmdata_shift_${_py_key}_eval.py failed"
+				return 1
+			fi
+		else
+			echo "INFO: PYTHONPATH=uncertainty/src/ python uncertainty/src/hmsc_ps_vcmdata_shift_${_py_key}_eval.py -c ${ini_fp} --select ${_select}"
+			if ! PYTHONPATH=uncertainty/src/ python "uncertainty/src/hmsc_ps_vcmdata_shift_${_py_key}_eval.py" -c "${ini_fp}" --select "${_select}"; then
+				echo "ERROR: hmsc_ps_vcmdata_shift_${_py_key}_eval.py failed"
+				return 1
+			fi
+		fi
 	done
 	return 0
 }

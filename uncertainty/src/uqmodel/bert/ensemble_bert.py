@@ -4,38 +4,42 @@ import torch
 from typing import Iterator, List, Optional, Sequence, Union
 from uqmodel.bert.bert_mlc import BertBinaryClassifier
 
+
 class EnsembleBertClassifier(Iterator):
     """An ensemble of bert classifiers."""
-    
-    model_ensemble:List[Optional[BertBinaryClassifier]]
-    
-    def __init__(self,
-                 ensemble_size:int,
-                 num_classes:int=2,
-                 neurons:Sequence=[300, 300, 300],
-                 dropouts:Sequence=[0.25, 0.25, 0.25],
-                 activation:Union[str,
-                                  torch.nn.ReLU,
-                                  torch.nn.LeakyReLU,
-                                  None]=None,
-                 cache_dir:str='~/.cache'):
+
+    model_ensemble: List[Optional[BertBinaryClassifier]]
+
+    def __init__(
+        self,
+        ensemble_size: int,
+        num_classes: int = 2,
+        neurons: Sequence = [300, 300, 300],
+        dropouts: Sequence = [0.25, 0.25, 0.25],
+        activation: Union[str, torch.nn.ReLU, torch.nn.LeakyReLU, None] = None,
+        cache_dir: str = "~/.cache",
+    ):
         cache_dir = os.path.expanduser(cache_dir)
         self.size = ensemble_size
-        self.model_ensemble = [BertBinaryClassifier(output=num_classes,
-                                                    neurons=neurons,
-                                                    dropouts=dropouts,
-                                                    activation=activation,
-                                                    cache_dir=cache_dir) 
-                               for _ in range(ensemble_size)]
+        self.model_ensemble = [
+            BertBinaryClassifier(
+                output=num_classes,
+                neurons=neurons,
+                dropouts=dropouts,
+                activation=activation,
+                cache_dir=cache_dir,
+            )
+            for _ in range(ensemble_size)
+        ]
 
-    def __getitem__(self, idx:int) -> Union[BertBinaryClassifier, None]:
+    def __getitem__(self, idx: int) -> Union[BertBinaryClassifier, None]:
         return self.model_ensemble[idx]
-        
+
     def __len__(self) -> int:
         return self.size
 
-    def __setitem__(self, idx:int, model:BertBinaryClassifier):
-       self.model_ensemble[idx] = model 
+    def __setitem__(self, idx: int, model: BertBinaryClassifier):
+        self.model_ensemble[idx] = model
 
     def __iter__(self) -> Iterator[BertBinaryClassifier]:
         self._iter_index = 0
@@ -49,7 +53,7 @@ class EnsembleBertClassifier(Iterator):
         else:
             raise StopIteration
 
-    def to(self, device:Union[torch.device, str, None]) -> EnsembleBertClassifier:
+    def to(self, device: Union[torch.device, str, None]) -> EnsembleBertClassifier:
         for i in range(self.size):
             model = self.model_ensemble[i]
             if model:
@@ -81,7 +85,7 @@ class EnsembleBertClassifier(Iterator):
     #         proba_list.append(proba)
     #     ensemble_proba = torch.stack(proba_list)
     #     return ensemble_proba, ensemble_proba.mean(dim=0)
-    
+
     # def predict_proba(self, test_dataloader:torch.utils.data.DataLoader, n_samples:int, device=None):
     #     # testing
     #     with torch.no_grad():

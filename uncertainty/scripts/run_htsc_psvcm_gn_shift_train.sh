@@ -1,7 +1,7 @@
 #!/bin/bash
 
 function help() {
-	echo "Usage: run_gn_shift [-f|--n_first <n_first>] [-l|--n_last <n_last>]"
+	echo "Usage: run_htsc_psvcm_gn_shift [-f|--n_first <n_first>] [-l|--n_last <n_last>]"
 	echo "           [-s|--step_size <step_size>] [-b|--im_ratio <im_ratio>]"
 	echo "           [-r|--rerun] [-d|--new_data] [-p|--reproduce <true|false>]"
 	echo "       the configuration file and the checkpoint for n_first must exists."
@@ -175,17 +175,21 @@ trap cleanup SIGINT
 
 config_root=uncertainty/config/htscpsvcm/shift/
 ckpt_root=uq_testdata_ckpt/htscpsvcm/shift/
-init_ini_im_1=en_vcm_1.0_im_1_gamma_0.5_train_0.9_sigma_0.ini
-init_ini=en_vcm_1.0_im_${im_ratio}_gamma_0.5_train_0.9_sigma_0.ini
+init_ini_im_1=en_psvcm_1.0_im_1_gamma_0.5_train_0.9_sigma_0.ini
+init_ini=en_psvcm_1.0_im_${im_ratio}_gamma_0.5_train_0.9_sigma_0.ini
 for ((n=n_first; n<=n_last; n++)); do
 	if [ "${step_size}" == "0.01" ]; then
 		sigma=$(echo "${init_ini}" | cut -d'_' -f11 | sed -e 's/.ini//g' | awk -v n="$n" '{s=$0; if (n > 0) s=n/100+$0; print s;}')
 	else
 		sigma=$(echo "${init_ini}" | cut -d'_' -f11 | sed -e 's/.ini//g' | awk -v n="$n" -v t="${step_size}" '{s=$0; if (n > 0) s=n*t+$0; print s;}')
 	fi
+	if [[ -z ${sigma} ]]; then
+		echo "ERROR: sigma is not set ... exit ..."
+		exit 1
+	fi
 	echo "INFO: sigma: ${sigma}"
-	ckpt_d=${ckpt_root}/en_vcm_1.0_im_${im_ratio}_gamma_0.5_train_0.9_sigma_${sigma}
-	ini_fp=${config_root}/en_vcm_1.0_im_${im_ratio}_gamma_0.5_train_0.9_sigma_${sigma}.ini
+	ckpt_d=${ckpt_root}/en_psvcm_1.0_im_${im_ratio}_gamma_0.5_train_0.9_sigma_${sigma}
+	ini_fp=${config_root}/en_psvcm_1.0_im_${im_ratio}_gamma_0.5_train_0.9_sigma_${sigma}.ini
 	init_ini_fp=${config_root}/${init_ini}
 	init_ini_im_1_fp=${config_root}/${init_ini_im_1}
 
@@ -202,7 +206,7 @@ for ((n=n_first; n<=n_last; n++)); do
 	fi
 
 	if ! set_reproduce "${init_ini_fp}" "${reproduce}"; then
-		echo "ERROR: failed for set_reproduce \"${init_ini_fp}\" \"${reproduce}\""
+		echo "ERROR: failed for set.py_reproduce \"${init_ini_fp}\" \"${reproduce}\""
 		exit 1
 	fi
 
@@ -216,9 +220,9 @@ for ((n=n_first; n<=n_last; n++)); do
 			echo "INFO: clean_data \"${ckpt_d}\": success"
 		fi
 		if [ ${rerun} == true ]; then
-			echo "INFO: PYTHONPATH=uncertainty/src/ python uncertainty/src/htsc_ps_data_shift_train.py -c ${init_ini_fp}"
-			if ! PYTHONPATH=uncertainty/src/ python uncertainty/src/htsc_ps_data_shift_train.py -c "${init_ini_fp}"; then
-				echo "ERROR: htsc_ps_data_shift_train.py failed"
+			echo "INFO: PYTHONPATH=uncertainty/src/ python uncertainty/src/htsc_ps_vcmdata_shift_train.py -c ${init_ini_fp}"
+			if ! PYTHONPATH=uncertainty/src/ python uncertainty/src/htsc_ps_vcmdata_shift_train.py -c "${init_ini_fp}"; then
+				echo "ERROR: htsc_ps_vcmdata_shift_train.py failed"
 				exit 1
 			fi
 		fi
@@ -236,21 +240,21 @@ for ((n=n_first; n<=n_last; n++)); do
 				echo "ERROR: configuration file ${ini_fp} inaccessible"
 				exit 1
 			fi
-			echo "INFO: PYTHONPATH=uncertainty/src/ python uncertainty/src/htsc_ps_data_shift_train.py -c ${ini_fp}"
-			if ! PYTHONPATH=uncertainty/src/ python uncertainty/src/htsc_ps_data_shift_train.py -c "${ini_fp}"; then
+			echo "INFO: PYTHONPATH=uncertainty/src/ python uncertainty/src/htsc_ps_vcmdata_shift_train.py -c ${ini_fp}"
+			if ! PYTHONPATH=uncertainty/src/ python uncertainty/src/htsc_ps_vcmdata_shift_train.py -c "${ini_fp}"; then
 				echo "ERROR: hmsc_ps_vcmdata_shift_train.py failed"
 				rm -rf "${ckpt_d}"
 				exit 1
 			fi
 
 			if [ ! -d "${ckpt_d}" ]; then
-				echo "ERROR: checkpoint at ${ckpt_d} still inaccessbile, htsc_ps_data_shift_train.py failed"
+				echo "ERROR: checkpoint at ${ckpt_d} still inaccessbile, htsc_ps_vcmdata_shift_train.py failed"
 				exit 1
 			fi
 		else
 			if [ ${rerun} == true ]; then
-				echo "INFO: PYTHONPATH=uncertainty/src/ python uncertainty/src/htsc_ps_data_shift_train.py -c ${ini_fp}"
-				if ! PYTHONPATH=uncertainty/src/ python uncertainty/src/htsc_ps_data_shift_train.py -c "${ini_fp}"; then
+				echo "INFO: PYTHONPATH=uncertainty/src/ python uncertainty/src/htsc_ps_vcmdata_shift_train.py -c ${ini_fp}"
+				if ! PYTHONPATH=uncertainty/src/ python uncertainty/src/htsc_ps_vcmdata_shift_train.py -c "${ini_fp}"; then
 					echo "ERROR: hmsc_ps_vcmdata_shift_train.py failed"
 					exit 1
 				fi

@@ -1,0 +1,72 @@
+version: 1
+objects:
+  queue:
+    class: queue.Queue
+formatters:
+  simple:
+    format: '%(asctime)s - %(name)s - %(processName)s - %(levelname)s - %(message)s'
+handlers:
+  console:
+    class: logging.StreamHandler
+    level: DEBUG
+    formatter: simple
+    stream: ext://sys.stdout
+  file:
+    class: logging.handlers.RotatingFileHandler
+    formatter: simple
+    filename: logging.log
+    maxBytes: 1048576
+    backupCount: 4
+    level: DEBUG
+  shift_bert_queue_listener:
+    class: uqmodel.shiftstochasticbert.logging_utils.QueueListenerHandler
+    handlers:
+      - cfg://handlers.file
+    queue: cfg://objects.queue
+loggers:
+  __main__:
+    level: DEBUG
+    handlers:
+      - shift_bert_queue_listener
+    propagate: false
+  uqmodel.shiftstochasticbert.bert_mlc:
+    level: INFO
+    handlers: 
+      - shift_bert_queue_listener
+    propagate: false
+  uqmodel.shiftstochasticbert.checkpoint:
+    level: DEBUG
+    handlers: 
+      - shift_bert_queue_listener
+    propagate: false
+  uqmodel.shiftstochasticbert.data:
+    level: DEBUG
+    handlers: 
+      - shift_bert_queue_listener
+    propagate: false
+  uqmodel.shiftstochasticbert.early_stoppping:
+    level: DEBUG
+    handlers: 
+      - shift_bert_queue_listener
+    propagate: false
+  uqmodel.shiftstochasticbert.ensemble_trainer:
+    level: DEBUG
+    handlers: 
+      - shift_bert_queue_listener
+    propagate: false
+  uqmodel.shiftstochasticbert.eval_utils:
+    level: DEBUG
+    handlers: 
+      - shift_bert_queue_listener
+    propagate: false
+  uqmodel.shiftstochasticbert.experiment:
+    level: DEBUG
+    handlers: 
+      - shift_bert_queue_listener
+    propagate: false
+
+root:
+  level: WARN
+  handlers:
+    - console
+    - shift_bert_queue_listener

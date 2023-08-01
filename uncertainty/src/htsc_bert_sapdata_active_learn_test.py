@@ -14,9 +14,6 @@
     load model and data
     evaluate (computing uncertainties and F1)
 
-
-TODO: data transofrmation (i.e., preprocessing) at present are fit with whole train datset. next
-    step, we should experiment with the scheme to fit with only the run_dataset
 """
 import argparse
 import logging
@@ -27,13 +24,17 @@ from datetime import datetime
 from uqmodel.stochasticbert.logging_utils import init_logging
 from uqmodel.stochasticbert.data import (
     BertExperimentDatasets,
-    BertExperimentDataLoaders
+    BertExperimentDataLoaders,
 )
-from uqmodel.stochasticbert.experiment import ExperimentConfig, init_argparse, setup_reproduce
+from uqmodel.stochasticbert.experiment import (
+    ExperimentConfig,
+    init_argparse,
+    setup_reproduce,
+)
 from uqmodel.stochasticbert.ensemble_trainer import EnsembleTrainer
 from uqmodel.stochasticbert.eval_utils import EnsembleDisentangledUq
 from uqmodel.stochasticbert.ensemble_bert import StochasticEnsembleBertClassifier
-from uqmodel.ensemble.train_utils import EarlyStopping
+from uqmodel.stochasticbert.train_utils import EarlyStopping
 
 logger = logging.getLogger(__name__)
 
@@ -41,15 +42,33 @@ logger = logging.getLogger(__name__)
 def get_experiment_config(parser=None):
     return ExperimentConfig()
 
+
 def get_extended_argparser() -> argparse.ArgumentParser:
     parser = init_argparse()
-    parser.add_argument('-a', '--action',
-                        help='active learning action in {}'.format(
-                            ['all', 'init', 'ehal', 'elah', 'ehah', 'elal', 'aleh', 'ahel', 'aheh','alel']
-                        ))
+    parser.add_argument(
+        "-a",
+        "--action",
+        help="active learning action in {}".format(
+            [
+                "all",
+                "init",
+                "ehal",
+                "elah",
+                "ehah",
+                "elal",
+                "aleh",
+                "ahel",
+                "aheh",
+                "alel",
+            ]
+        ),
+    )
     return parser
 
-def get_extended_args(config:ExperimentConfig, parser:argparse.ArgumentParser=None) -> ExperimentConfig:
+
+def get_extended_args(
+    config: ExperimentConfig, parser: argparse.ArgumentParser = None
+) -> ExperimentConfig:
     if not parser:
         parser = init_argparse()
     args = parser.parse_args()
@@ -57,12 +76,13 @@ def get_extended_args(config:ExperimentConfig, parser:argparse.ArgumentParser=No
         config.action = args.action
     return config
 
+
 def setup_experiment() -> ExperimentConfig:
     parser = get_extended_argparser()
     config = get_experiment_config(parser)
 
     if not os.path.exists(config.data_dir):
-        raise ValueError(f'data_dir {config.data_dir} inaccessible')
+        raise ValueError(f"data_dir {config.data_dir} inaccessible")
 
     if config.reproduce:
         setup_reproduce(config)
@@ -84,22 +104,29 @@ def setup_experiment() -> ExperimentConfig:
 
 
 def get_datetime_jobid():
-    date_time = datetime.now().strftime('%Y%m%d%H%M%S')
+    date_time = datetime.now().strftime("%Y%m%d%H%M%S")
     return date_time
 
-def get_trained_model(config:ExperimentConfig,
-                      datasets:BertExperimentDatasets,
-                      device:torch.device):
-    lr_scheduler_params = {'step_size': config.trainer_lr_scheduler_step_size,
-                    'gamma': config.trainer_lr_scheduler_gamma}
-    stopper = EarlyStopping(patience=config.trainer_early_stopping_patience,
-                            min_delta=config.trainer_early_stopping_min_delta)
-   
+
+def get_trained_model(
+    config: ExperimentConfig, datasets: BertExperimentDatasets, device: torch.device
+):
+    lr_scheduler_params = {
+        "step_size": config.trainer_lr_scheduler_step_size,
+        "gamma": config.trainer_lr_scheduler_gamma,
+    }
+    stopper = EarlyStopping(
+        patience=config.trainer_early_stopping_patience,
+        min_delta=config.trainer_early_stopping_min_delta,
+    )
+
     ensemble = StochasticEnsembleBertClassifier(
         config.model_ensemble_size,
         config.num_classes,
-        config.dropout_proba,
-        config.cache_dir
+        config.num_neurons,
+        config.dropout_ratios,
+        config.activation,
+        config.cache_dir,
     )
 
     ensemble_trainer = EnsembleTrainer(
@@ -113,47 +140,59 @@ def get_trained_model(config:ExperimentConfig,
         pin_memory=config.pin_memory,
         device=device,
         earlystopping=stopper,
-        tensorboard_log=(config.trainer_tensorboard_logdir, 'train/{}'.format(get_datetime_jobid())),
-        n_aleatoric_samples=config.trainer_aleatoric_samples
+        tensorboard_log=(
+            config.trainer_tensorboard_logdir,
+            "train/{}".format(get_datetime_jobid()),
+        ),
+        n_aleatoric_samples=config.trainer_aleatoric_samples,
     )
 
-    if config.trainer_use_model == 'use_checkpoint':
+    if config.trainer_use_model == "use_checkpoint":
         try:
             ensemble = ensemble_trainer.load_checkpoint()
-            logger.info('use the ensemble model from checkpoint, no training')
+            logger.info("use the ensemble model from checkpoint, no training")
         except FileNotFoundError as err:
-            logger.info('training the ensemble model from scratch')
+            logger.info("training the ensemble model from scratch")
             raise err
     else:
-        logger.info('training the ensemble model from scratch')
+        logger.info("training the ensemble model from scratch")
         ensemble_trainer.fit()
         ensemble = ensemble_trainer.load_checkpoint()
     if isinstance(ensemble, tuple):
         ensemble = ensemble[0]
     return ensemble
 
-def get_trained_ensemble_model(config:ExperimentConfig,
-                               datasets:BertExperimentDatasets,
-                               load_trained:bool=False):
-    logger.info('N(run_dataset): {}, N(val_dataset): {}'
-                .format(len(datasets.run_dataset), len(datasets.pool_dataset)))
+
+def get_trained_ensemble_model(
+    config: ExperimentConfig,
+    datasets: BertExperimentDatasets,
+    load_trained: bool = False,
+):
+    logger.info(
+        "N(run_dataset): {}, N(val_dataset): {}".format(
+            len(datasets.run_dataset), len(datasets.pool_dataset)
+        )
+    )
     if load_trained:
         old_use_model = config.trainer_use_model
-        config.trainer_use_model = 'use_checkpoint'
-    ensemble = get_trained_model(config,
-                                 datasets,
-                                 device=config.device)
+        config.trainer_use_model = "use_checkpoint"
+    ensemble = get_trained_model(config, datasets, device=config.device)
     if load_trained:
         config.trainer_use_model = old_use_model
     return ensemble
 
-def compute_data_pool_uq_metrics(config:ExperimentConfig,
-                                 ensemble:StochasticEnsembleBertClassifier,
-                                 dataloaders:BertExperimentDataLoaders):
-    uq = EnsembleDisentangledUq(ensemble,
-                                dataloaders.pool_dataloader,
-                                config.trainer_aleatoric_samples,
-                                device=config.device)
+
+def compute_data_pool_uq_metrics(
+    config: ExperimentConfig,
+    ensemble: StochasticEnsembleBertClassifier,
+    dataloaders: BertExperimentDataLoaders,
+):
+    uq = EnsembleDisentangledUq(
+        ensemble,
+        dataloaders.pool_dataloader,
+        config.trainer_aleatoric_samples,
+        device=config.device,
+    )
     (
         proba_std_aleatoric,
         proba_mean_aleatoric,
@@ -166,48 +205,80 @@ def compute_data_pool_uq_metrics(config:ExperimentConfig,
         muinfo_all,
         mu_mean,
         sigma_aleatoric,
-        sigma_epistermic
-    ) = (
-        uq.compute_uq()
-    )
+        sigma_epistermic,
+    ) = uq.compute_uq()
     return (entropy_epistermic, entropy_aleatoric)
 
-def run_experiment(config:ExperimentConfig) -> dict:
-    experiment_datasets = BertExperimentDatasets(config, None)
-    selection_size = int(len(experiment_datasets.pool_dataset)/2/5)
-    
-    logger.info('action to take: {}'.format(config.action))
 
-    if config.action in ['all', 'init']:
-        logger.info('begin {} with len(run_dataset): {}, len(pool_dataset): {}'
-            .format('init', len(experiment_datasets.run_dataset), len(experiment_datasets.pool_dataset)))
+def run_experiment(config: ExperimentConfig) -> dict:
+    experiment_datasets = BertExperimentDatasets(config, None)
+    selection_size = int(len(experiment_datasets.pool_dataset) / 2 / 5)
+
+    logger.info("action to take: {}".format(config.action))
+
+    if config.action in ["all", "init"]:
+        logger.info(
+            "begin {} with len(run_dataset): {}, len(pool_dataset): {}".format(
+                "init",
+                len(experiment_datasets.run_dataset),
+                len(experiment_datasets.pool_dataset),
+            )
+        )
         ensemble = get_trained_ensemble_model(config, experiment_datasets)
     else:
-        ensemble = get_trained_ensemble_model(config, experiment_datasets, load_trained=True)
+        ensemble = get_trained_ensemble_model(
+            config, experiment_datasets, load_trained=True
+        )
     experiment_dataloaders = BertExperimentDataLoaders(config, experiment_datasets)
-    (entropy_epistermic, entropy_aleatoric) = compute_data_pool_uq_metrics(config, ensemble, experiment_dataloaders)
+    (entropy_epistermic, entropy_aleatoric) = compute_data_pool_uq_metrics(
+        config, ensemble, experiment_dataloaders
+    )
 
-    for method in ['ehal', 'elah', 'ehah', 'elal', 'aleh', 'ahel', 'aheh', 'alel']:
-        if method == config.action or config.action == 'all':
+    for method in ["ehal", "elah", "ehah", "elal", "aleh", "ahel", "aheh", "alel"]:
+        if method == config.action or config.action == "all":
             run_datasets = deepcopy(experiment_datasets)
-            logger.info('begin {} with len(run_dataset): {}, len(pool_dataset): {}'
-                .format(method, len(run_datasets.run_dataset), len(run_datasets.pool_dataset)))
+            logger.info(
+                "begin {} with len(run_dataset): {}, len(pool_dataset): {}".format(
+                    method,
+                    len(run_datasets.run_dataset),
+                    len(run_datasets.pool_dataset),
+                )
+            )
             for i in range(5):
-                logger.info('run {} method for step {}'.format(method, i))
-                run_datasets.update(selection_size, entropy_epistermic, entropy_aleatoric, method, '{}_{}'.format(i, method))
-                logger.info('updated run_dataset for method {} with len(run_dataset): {}, len(pool_dataset): {}'
-                    .format(method, len(run_datasets.run_dataset), len(run_datasets.pool_dataset)))
+                logger.info("run {} method for step {}".format(method, i))
+                run_datasets.update(
+                    selection_size,
+                    entropy_epistermic,
+                    entropy_aleatoric,
+                    method,
+                    "{}_{}".format(i, method),
+                )
+                logger.info(
+                    "updated run_dataset for method {} with len(run_dataset): {}, len(pool_dataset): {}".format(
+                        method,
+                        len(run_datasets.run_dataset),
+                        len(run_datasets.pool_dataset),
+                    )
+                )
 
                 run_dataloaders = BertExperimentDataLoaders(config, run_datasets)
 
                 ensemble = get_trained_ensemble_model(config, run_datasets)
-                (entropy_epistermic, entropy_aleatoric) = compute_data_pool_uq_metrics(config, ensemble, run_dataloaders)
-                logger.info('done {} at {} with len(run_dataset): {}, len(pool_dataset): {}'
-                            .format(method, i, len(run_datasets.run_dataset), len(run_datasets.pool_dataset)))
-    logger.info('done')
+                (entropy_epistermic, entropy_aleatoric) = compute_data_pool_uq_metrics(
+                    config, ensemble, run_dataloaders
+                )
+                logger.info(
+                    "done {} at {} with len(run_dataset): {}, len(pool_dataset): {}".format(
+                        method,
+                        i,
+                        len(run_datasets.run_dataset),
+                        len(run_datasets.pool_dataset),
+                    )
+                )
+    logger.info("done")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     init_logging(__file__, append=True)
 
     config = setup_experiment()

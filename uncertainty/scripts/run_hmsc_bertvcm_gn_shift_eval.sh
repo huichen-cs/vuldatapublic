@@ -62,8 +62,8 @@ while true; do
 	esac
 done
 
-config_root=uncertainty/config/bertps/shift
-ckpt_root=uq_testdata_ckpt/bertps/shift/
+config_root=uncertainty/config/bertvcm/shift
+ckpt_root=uq_testdata_ckpt/bertvcm/shift/
 
 eval_from_ckpt() 
 {
@@ -82,7 +82,7 @@ eval_from_ckpt()
 		_select_criteria=$5
 	fi
 
-	init_ini=bertps_1.0_im_${im_ratio}_train_0.9_sigma_0.ini
+	init_ini=bertvcm_1.0_im_${im_ratio}_train_0.9_sigma_0.ini
 	for ((n=_n_first; n<=_n_last; n++)); do
 		# _sigma=$(echo "${init_ini}" | cut -d'_' -f11 | sed -e 's/.ini//g' | awk -v n=$n '{s=$0; if (n > 0) s=n/100+$0; print s;}')
 		if [ "${step_size}" == "0.01" ]; then
@@ -91,8 +91,8 @@ eval_from_ckpt()
 			_sigma=$(echo "${init_ini}" | cut -d'_' -f8 | sed -e 's/.ini//g' | awk -v n="$n" -v t="${step_size}" '{s=$0; if (n > 0) s=n*t+$0; print s;}')
 		fi
 		echo "INFO: sigma: ${_sigma}"
-		ckpt_d=${ckpt_root}/en_bertps_1.0_im_${im_ratio}_train_0.9_sigma_${_sigma}
-		ini_fp=${config_root}/bertps_1.0_im_${im_ratio}_train_0.9_sigma_${_sigma}.ini
+		ckpt_d=${ckpt_root}/en_bertvcm_1.0_im_${im_ratio}_train_0.9_sigma_${_sigma}
+		ini_fp=${config_root}/bertvcm_1.0_im_${im_ratio}_train_0.9_sigma_${_sigma}.ini
 
 		if [ ! -f "${ini_fp}" ]; then 
 			echo "ERROR: experiment configuration ${ini_fp} inaccessible"

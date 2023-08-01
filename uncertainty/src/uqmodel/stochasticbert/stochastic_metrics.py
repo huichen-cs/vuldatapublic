@@ -1,5 +1,6 @@
 import torch
 
+
 def softmax_instance(mu, sigma_log_sigma, n_samples, passed_log_sigma=True):
     if passed_log_sigma:
         sigma = torch.exp(sigma_log_sigma)
@@ -10,14 +11,17 @@ def softmax_instance(mu, sigma_log_sigma, n_samples, passed_log_sigma=True):
     else:
         samples = torch.randn(n_samples, sigma.shape[0])
     logits = (
-        mu.unsqueeze(0).repeat(n_samples, 1) +
-        sigma.unsqueeze(0).repeat(n_samples, 1) * samples
+        mu.unsqueeze(0).repeat(n_samples, 1)
+        + sigma.unsqueeze(0).repeat(n_samples, 1) * samples
     )
     proba = torch.softmax(logits, dim=1)
     std, proba = torch.std_mean(proba, dim=0)
     return std, proba
 
-def softmax_batch(mu, sigma_log_sigma, n_samples, passed_log_sigma=True, return_mean_std=True):
+
+def softmax_batch(
+    mu, sigma_log_sigma, n_samples, passed_log_sigma=True, return_mean_std=True
+):
     batch_size, output_size = mu.shape
 
     # compute z = mu + sigma epislon, where epislon ~ N(0, 1)
@@ -29,12 +33,13 @@ def softmax_batch(mu, sigma_log_sigma, n_samples, passed_log_sigma=True, return_
         samples = torch.randn(n_samples, batch_size, output_size).cuda()
     else:
         samples = torch.randn(n_samples, batch_size, output_size)
-    logits_samples = (
-            mu.unsqueeze(0).repeat(n_samples, 1, 1) +       # mu repeated for n_samples times
-            torch.mul(
-                sigma.unsqueeze(0).repeat(n_samples, 1, 1), # sigma repeated for n_samples times
-                samples                                     # samples from standard normal distribution
-            )
+    logits_samples = mu.unsqueeze(0).repeat(
+        n_samples, 1, 1
+    ) + torch.mul(  # mu repeated for n_samples times
+        sigma.unsqueeze(0).repeat(
+            n_samples, 1, 1
+        ),  # sigma repeated for n_samples times
+        samples,  # samples from standard normal distribution
     )
     proba = torch.softmax(logits_samples, dim=-1)
     std, proba = torch.std_mean(proba, dim=0)
@@ -47,7 +52,7 @@ def softmax_batch(mu, sigma_log_sigma, n_samples, passed_log_sigma=True, return_
 def entropy_instance(proba):
     log_proba = torch.log2(proba)
     p_log_p = log_proba * proba
-    entropy = - p_log_p.mean()
+    entropy = -p_log_p.mean()
     return entropy
 
 
@@ -57,13 +62,17 @@ def entropy_instance(proba):
 #     entropy = - p_log_p.mean(dim=-1)
 #     return entropy
 
+
 def entropy_batch(proba):
     log_proba = torch.log2(proba)
     p_log_p = torch.mul(log_proba, proba)
-    entropy = - p_log_p.sum(dim=-1)
+    entropy = -p_log_p.sum(dim=-1)
     return entropy
 
-def softmax_all(mu_all, sigma_log_sigma_all, n_samples, passed_log_sigma=True, return_mean_std=True):
+
+def softmax_all(
+    mu_all, sigma_log_sigma_all, n_samples, passed_log_sigma=True, return_mean_std=True
+):
     mu_all = mu_all.transpose(0, -1).transpose(1, -1)
     sigma_all = sigma_log_sigma_all.transpose(0, -1).transpose(1, -1)
     # trunk-ignore(bandit/B101)
@@ -80,12 +89,13 @@ def softmax_all(mu_all, sigma_log_sigma_all, n_samples, passed_log_sigma=True, r
             samples = torch.randn(n_samples, batch_size, output_size).cuda()
         else:
             samples = torch.randn(n_samples, batch_size, output_size)
-        logits_samples = (
-                mu.unsqueeze(0).repeat(n_samples, 1, 1) +       # mu repeated for n_samples times
-                torch.mul(
-                    sigma.unsqueeze(0).repeat(n_samples, 1, 1), # sigma repeated for n_samples times
-                    samples                                     # samples from standard normal distribution
-                )
+        logits_samples = mu.unsqueeze(0).repeat(
+            n_samples, 1, 1
+        ) + torch.mul(  # mu repeated for n_samples times
+            sigma.unsqueeze(0).repeat(
+                n_samples, 1, 1
+            ),  # sigma repeated for n_samples times
+            samples,  # samples from standard normal distribution
         )
         proba = torch.softmax(logits_samples, dim=-1)
         proba_list.append(proba)

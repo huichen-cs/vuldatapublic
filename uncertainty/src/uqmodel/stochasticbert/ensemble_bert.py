@@ -1,31 +1,48 @@
 import os
 import torch
-from uqmodel.stochasticbert.stochastic_metrics import softmax_batch
-from uqmodel.stochasticbert.stochastic_bert import StochasticBertBinaryClassifier
+from typing import Sequence
+from .stochastic_metrics import softmax_batch
+from .stochastic_bert_mlc import StochasticBertBinaryClassifier
+
 
 class StochasticEnsembleBertClassifier(object):
     """
     An ensemble of bert classifiers.
-    
+
     """
-    def __init__(self, ensemble_size:int, num_classes:int=2, dropout_prob:float=0.1,
-                 cache_dir:str='~/.hfcache'):
+
+    def __init__(
+        self,
+        ensemble_size: int,
+        num_classes: int = 2,
+        neurons: Sequence = [300, 300, 300],
+        dropout_probs: Sequence = [0.1, 0.1, 0.1],
+        activiation: str = "leakrelu",
+        cache_dir: str = "~/.hfcache",
+    ):
         cache_dir = os.path.expanduser(cache_dir)
         self.size = ensemble_size
-        self.model_ensemble = [StochasticBertBinaryClassifier(num_classes, dropout_prob, cache_dir) for _ in range(ensemble_size)]
+        self.model_ensemble = [
+            StochasticBertBinaryClassifier(
+                num_classes, neurons, dropout_probs, activiation, cache_dir
+            )
+            for _ in range(ensemble_size)
+        ]
         self.log_sigma = False
 
     # def to(self, device:torch.device):
     #     self.model_ensemble = [model.to(device) for model in self.model_ensemble]
     #     return self
 
-    def __getitem__(self, idx:int):
+    def __getitem__(self, idx: int):
         return self.model_ensemble[idx]
-        
+
     def __len__(self):
         return len(self.model_ensemble)
 
-    def predict_proba(self, test_dataloader:torch.utils.data.DataLoader, n_samples:int, device=None):
+    def predict_proba(
+        self, test_dataloader: torch.utils.data.DataLoader, n_samples: int, device=None
+    ):
         # testing
         with torch.no_grad():
             for test_batch in test_dataloader:
@@ -39,12 +56,19 @@ class StochasticEnsembleBertClassifier(object):
                     self.model_ensemble[idx].to(device)
                     self.model_ensemble[idx].eval()
                     mu, sigma = self.model_ensemble[idx](input_ids, attention_mask)
-                    _, proba = softmax_batch(mu, sigma, n_samples, passed_log_sigma=self.log_sigma)
+                    _, proba = softmax_batch(
+                        mu, sigma, n_samples, passed_log_sigma=self.log_sigma
+                    )
                     proba_list.append(proba)
                     self.model_ensemble[idx].train()
                 yield proba_list
 
-    def predict_mean_proba(self, test_dataloader:torch.utils.data.DataLoader, n_samples:int, device:torch.device=None):
+    def predict_mean_proba(
+        self,
+        test_dataloader: torch.utils.data.DataLoader,
+        n_samples: int,
+        device: torch.device = None,
+    ):
         test_proba = self.predict_proba(test_dataloader, n_samples, device)
         for test_batch in test_proba:
             mean_proba = torch.stack(test_batch, dim=0).mean(dim=0)

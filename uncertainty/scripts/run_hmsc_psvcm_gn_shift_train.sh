@@ -1,7 +1,7 @@
 #!/bin/bash
 
 function help() {
-	echo "Usage: run_gn_shift [-f|--n_first <n_first>] [-l|--n_last <n_last>]"
+	echo "Usage: run_hmsc_psvcm_gn_shift [-f|--n_first <n_first>] [-l|--n_last <n_last>]"
 	echo "           [-s|--step_size <step_size>] [-b|--im_ratio <im_ratio>]"
 	echo "           [-r|--rerun] [-d|--new_data] [-p|--reproduce <true|false>]"
 	echo "       the configuration file and the checkpoint for n_first must exists."
@@ -173,10 +173,10 @@ function make_init_ini_file()
 
 trap cleanup SIGINT
 
-config_root=uncertainty/config/shift
-ckpt_root=uq_testdata_ckpt/shift/rpd/
-init_ini_im_1=en_vcm_1.0_im_1_gamma_0.5_train_0.9_sigma_0.ini
-init_ini=en_vcm_1.0_im_${im_ratio}_gamma_0.5_train_0.9_sigma_0.ini
+config_root=uncertainty/config/psvcm/shift
+ckpt_root=uq_testdata_ckpt/psvcm/shift
+init_ini_im_1=en_psvcm_1.0_im_1_gamma_0.5_train_0.9_sigma_0.ini
+init_ini=en_psvcm_1.0_im_${im_ratio}_gamma_0.5_train_0.9_sigma_0.ini
 for ((n=n_first; n<=n_last; n++)); do
 	if [ "${step_size}" == "0.01" ]; then
 		sigma=$(echo "${init_ini}" | cut -d'_' -f11 | sed -e 's/.ini//g' | awk -v n="$n" '{s=$0; if (n > 0) s=n/100+$0; print s;}')
@@ -184,8 +184,8 @@ for ((n=n_first; n<=n_last; n++)); do
 		sigma=$(echo "${init_ini}" | cut -d'_' -f11 | sed -e 's/.ini//g' | awk -v n="$n" -v t="${step_size}" '{s=$0; if (n > 0) s=n*t+$0; print s;}')
 	fi
 	echo "INFO: sigma: ${sigma}"
-	ckpt_d=${ckpt_root}/en_vcm_1.0_im_${im_ratio}_gamma_0.5_train_0.9_sigma_${sigma}
-	ini_fp=${config_root}/en_vcm_1.0_im_${im_ratio}_gamma_0.5_train_0.9_sigma_${sigma}.ini
+	ckpt_d=${ckpt_root}/en_psvcm_1.0_im_${im_ratio}_gamma_0.5_train_0.9_sigma_${sigma}
+	ini_fp=${config_root}/en_psvcm_1.0_im_${im_ratio}_gamma_0.5_train_0.9_sigma_${sigma}.ini
 	init_ini_fp=${config_root}/${init_ini}
 	init_ini_im_1_fp=${config_root}/${init_ini_im_1}
 

@@ -17,9 +17,9 @@ function do_action() {
 	fi
 	action=$1
 	echo -n "PYTHONPATH=$PYTHONPATH "
-	echo -n "python uncertainty/src/ps_data_active_learn_test.py "
+	echo -n "python uncertainty/src/htsc_ps_vcmdata_active_learn_test.py "
 	echo    "  -c  uncertainty/config/active/v3/en_vcm_1.0_im_1_train_0.9_sigma_0.0_sft_1.0.ini -a ${action}"
-	PYTHONPATH=$PYTHONPATH python uncertainty/src/ps_data_active_learn_test.py \
+	PYTHONPATH=$PYTHONPATH python uncertainty/src/htsc_ps_vcmdata_active_learn_test.py \
 		-c  uncertainty/config/active/v3/en_vcm_1.0_im_1_train_0.9_sigma_0.0_sft_1.0.ini -a "${action}"
 }
 

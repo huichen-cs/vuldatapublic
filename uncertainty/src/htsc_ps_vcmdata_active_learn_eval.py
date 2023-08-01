@@ -29,21 +29,25 @@ from uqmodel.stochasticensemble.active_learn import EnsembleCheckpoint
 from uqmodel.stochasticensemble.eval_utils import (
     EnsembleDisentangledUq,
     compute_uq_eval_metrics,
-    result_dict_to_json
+    result_dict_to_json,
 )
 from uqmodel.stochasticensemble.ensemble_mlc import StochasticEnsembleClassifier
 from uqmodel.stochasticensemble.stochastic_mlc import StochasticMultiLayerClassifier
 from uqmodel.stochasticensemble.ensemble_trainer import EnsembleTrainer
-from uqmodel.stochasticensemble.experiment_config import get_experiment_config, setup_reproduce
+from uqmodel.stochasticensemble.experiment_config import (
+    get_experiment_config,
+    setup_reproduce,
+)
 
 
 logger = logging.getLogger(__name__)
+
 
 def setup_experiment() -> ExperimentConfig:
     config = get_experiment_config()
 
     if not os.path.exists(config.data.data_dir):
-        raise ValueError(f'data_dir {config.data.data_dir} inaccessible')
+        raise ValueError(f"data_dir {config.data.data_dir} inaccessible")
 
     if config.reproduce:
         setup_reproduce(config.reproduce)
@@ -64,16 +68,26 @@ def setup_experiment() -> ExperimentConfig:
     return config
 
 
-def load_from_checkpoint(config:ExperimentConfig, tag=None):
-    ckpt = EnsembleCheckpoint(config.trainer.checkpoint.dir_path,
-                              warmup_epochs=config.trainer.checkpoint.warmup_epochs,
-                              tag=tag,
-                              train=False)
+def load_from_checkpoint(config: ExperimentConfig, tag=None):
+    ckpt = EnsembleCheckpoint(
+        config.trainer.checkpoint.dir_path,
+        warmup_epochs=config.trainer.checkpoint.warmup_epochs,
+        tag=tag,
+        train=False,
+    )
     try:
         _, _, test_dataset, ps_columns = ckpt.load_datasets()
-        logger.info('loaded train/val/test datasets from checkpoint at {}'.format(config.trainer.checkpoint.dir_path))
+        logger.info(
+            "loaded train/val/test datasets from checkpoint at {}".format(
+                config.trainer.checkpoint.dir_path
+            )
+        )
     except FileNotFoundError as err:
-        logger.error('failed to load train/va/test datasets from checkpoint at {}'.format(config.trainer.checkpoint.dir_path))
+        logger.error(
+            "failed to load train/va/test datasets from checkpoint at {}".format(
+                config.trainer.checkpoint.dir_path
+            )
+        )
         raise err
 
     # train_dataloader = torch.utils.data.DataLoader(train_dataset,
@@ -85,92 +99,118 @@ def load_from_checkpoint(config:ExperimentConfig, tag=None):
     #                                                 num_workers=config.num_workers,
     #                                                 pin_memory=False)
 
-    test_dataloader =  torch.utils.data.DataLoader(test_dataset,
-                                                batch_size=config.trainer.batch_size,
-                                                num_workers=config.num_workers, 
-                                                pin_memory=False)
+    test_dataloader = torch.utils.data.DataLoader(
+        test_dataset,
+        batch_size=config.trainer.batch_size,
+        num_workers=config.num_workers,
+        pin_memory=False,
+    )
     ensemble = StochasticEnsembleClassifier(
-                    StochasticMultiLayerClassifier,
-                    config.output_log_sigma, # log_sigma <- False
-                    config.model.ensemble_size, len(ps_columns), 2,
-                    neurons=config.model.num_neurons, dropouts=config.model.dropout_ratios,
-                    activation=torch.nn.LeakyReLU()
-                )
-    trainer = EnsembleTrainer(ensemble,
-                    criteria=None,
-                    lr_scheduler=None,
-                    max_iter=config.trainer.max_iter,
-                    init_lr=config.trainer.optimizer.init_lr,
-                    device=config.device,
-                    checkpoint=ckpt,
-                    earlystopping=None,
-                    n_samples=config.trainer.aleatoric_samples,
-                    ouput_log_sigma=config.output_log_sigma
-                )
-   
-    try: 
-        ensemble = trainer.load_checkpoint()
-        logger.info('use the ensemble model from checkpoint, no training')
-    except FileNotFoundError as err:
-        raise ValueError(
-            'failed to load pre-trained ensemble model from checkpoint at {}'
-            .format(config.trainer.checkpoint.dir_path)) from err
-    return test_dataloader, ps_columns, ensemble
-
-def load_ensemble_from_checkpoint(config:ExperimentConfig, ps_columns:list, tag=None):
-    ckpt = EnsembleCheckpoint(config.trainer.checkpoint.dir_path,
-                              warmup_epochs=config.trainer.checkpoint.warmup_epochs,
-                              tag=tag,
-                              train=False)
-    ensemble = StochasticEnsembleClassifier(
-                    StochasticMultiLayerClassifier,
-                    config.output_log_sigma, # log_sigma <- False
-                    config.model.ensemble_size, len(ps_columns), 2,
-                    neurons=config.model.num_neurons, dropouts=config.model.dropout_ratios,
-                    activation=torch.nn.LeakyReLU()
-                )
-    trainer = EnsembleTrainer(ensemble,
-                    criteria=None,
-                    lr_scheduler=None,
-                    max_iter=config.trainer.max_iter,
-                    init_lr=config.trainer.optimizer.init_lr,
-                    device=config.device,
-                    checkpoint=ckpt,
-                    earlystopping=None,
-                    n_samples=config.trainer.aleatoric_samples,
-                    ouput_log_sigma=config.output_log_sigma
-                )
+        StochasticMultiLayerClassifier,
+        config.output_log_sigma,  # log_sigma <- False
+        config.model.ensemble_size,
+        len(ps_columns),
+        2,
+        neurons=config.model.num_neurons,
+        dropouts=config.model.dropout_ratios,
+        activation=torch.nn.LeakyReLU(),
+    )
+    trainer = EnsembleTrainer(
+        ensemble,
+        criteria=None,
+        lr_scheduler=None,
+        max_iter=config.trainer.max_iter,
+        init_lr=config.trainer.optimizer.init_lr,
+        device=config.device,
+        checkpoint=ckpt,
+        earlystopping=None,
+        n_samples=config.trainer.aleatoric_samples,
+        ouput_log_sigma=config.output_log_sigma,
+    )
 
     try:
         ensemble = trainer.load_checkpoint()
-        logger.info('use the ensemble model from checkpoint, no training')
+        logger.info("use the ensemble model from checkpoint, no training")
     except FileNotFoundError as err:
         raise ValueError(
-            'failed to load pre-trained ensemble model from checkpoint at {}'
-            .format(config.trainer.checkpoint.dir_path)) from err
+            "failed to load pre-trained ensemble model from checkpoint at {}".format(
+                config.trainer.checkpoint.dir_path
+            )
+        ) from err
+    return test_dataloader, ps_columns, ensemble
+
+
+def load_ensemble_from_checkpoint(config: ExperimentConfig, ps_columns: list, tag=None):
+    ckpt = EnsembleCheckpoint(
+        config.trainer.checkpoint.dir_path,
+        warmup_epochs=config.trainer.checkpoint.warmup_epochs,
+        tag=tag,
+        train=False,
+    )
+    ensemble = StochasticEnsembleClassifier(
+        StochasticMultiLayerClassifier,
+        config.output_log_sigma,  # log_sigma <- False
+        config.model.ensemble_size,
+        len(ps_columns),
+        2,
+        neurons=config.model.num_neurons,
+        dropouts=config.model.dropout_ratios,
+        activation=torch.nn.LeakyReLU(),
+    )
+    trainer = EnsembleTrainer(
+        ensemble,
+        criteria=None,
+        lr_scheduler=None,
+        max_iter=config.trainer.max_iter,
+        init_lr=config.trainer.optimizer.init_lr,
+        device=config.device,
+        checkpoint=ckpt,
+        earlystopping=None,
+        n_samples=config.trainer.aleatoric_samples,
+        ouput_log_sigma=config.output_log_sigma,
+    )
+
+    try:
+        ensemble = trainer.load_checkpoint()
+        logger.info("use the ensemble model from checkpoint, no training")
+    except FileNotFoundError as err:
+        raise ValueError(
+            "failed to load pre-trained ensemble model from checkpoint at {}".format(
+                config.trainer.checkpoint.dir_path
+            )
+        ) from err
     return ensemble
 
+
 def compute_eval_metrics(ensemble, test_dataloader, device=None):
-    test_proba_pred_mean = list(ensemble.predict_mean_proba(test_dataloader, config.trainer.aleatoric_samples, device=device))
+    test_proba_pred_mean = list(
+        ensemble.predict_mean_proba(
+            test_dataloader, config.trainer.aleatoric_samples, device=device
+        )
+    )
     test_conf_pred_list, test_label_pred_list = [], []
     for confs, labels in ensemble.compute_class_with_conf(test_proba_pred_mean):
         test_conf_pred_list.append(confs)
         test_label_pred_list.append(labels)
-    
+
     test_conf_pred_tensor = torch.cat(test_conf_pred_list, dim=0).to(device)
     test_label_pred_tensor = torch.cat(test_label_pred_list, dim=0).to(device)
     test_label_tensor = get_test_label(test_dataloader, device=device)
 
     predicted_proba_tensor = torch.cat(test_proba_pred_mean, dim=0)
-    result_dict = compute_uq_eval_metrics(config,
-                                          predicted_proba_tensor,
-                                          test_label_pred_tensor,
-                                          test_label_tensor,
-                                          py_script=os.path.basename(__file__),
-                                          metrics_list=['acc', 'precision', 'recall', 'f1', 'mcc', 'auprc', 'auroc'])
-    
+    result_dict = compute_uq_eval_metrics(
+        config,
+        predicted_proba_tensor,
+        test_label_pred_tensor,
+        test_label_tensor,
+        py_script=os.path.basename(__file__),
+        metrics_list=["acc", "precision", "recall", "f1", "mcc", "auprc", "auroc"],
+    )
+
     uq_list = []
-    uq = EnsembleDisentangledUq(ensemble, test_dataloader, config.trainer.aleatoric_samples, device=device)
+    uq = EnsembleDisentangledUq(
+        ensemble, test_dataloader, config.trainer.aleatoric_samples, device=device
+    )
     (
         proba_std_aleatoric,
         proba_mean_aleatoric,
@@ -183,10 +223,8 @@ def compute_eval_metrics(ensemble, test_dataloader, device=None):
         muinfo_all,
         mu_mean,
         sigma_aleatoric,
-        sigma_epistermic
-    ) = (
-        uq.compute_uq()
-    )
+        sigma_epistermic,
+    ) = uq.compute_uq()
     for idx in range(len(test_label_tensor)):
         target = test_label_tensor[idx].item()
         label_pred = test_label_pred_tensor[idx].item()
@@ -204,41 +242,51 @@ def compute_eval_metrics(ensemble, test_dataloader, device=None):
         logits_sigma_aleatoric = sigma_aleatoric[idx].detach().cpu().numpy().tolist()
         logits_sigma_epistermic = sigma_epistermic[idx].detach().cpu().numpy().tolist()
         if target == label_pred and target == 1:
-            quadrant = 'TP'
+            quadrant = "TP"
         elif target == label_pred and target == 0:
-            quadrant = 'TN'
+            quadrant = "TN"
         elif target != label_pred and label_pred == 1:
-            quadrant = 'FP'
-        else: 
-            quadrant = 'FN'
+            quadrant = "FP"
+        else:
+            quadrant = "FN"
         uq_dict = {
-            'index': idx,
-            'target': target,
-            'label_pred': label_pred,
-            'label_conf': label_conf,
-            'proba_ale': proba_ale,
-            'proba_ale_std': proba_ale_std,
-            'entropy_ale': entropy_ale,
-            'proba_epi': proba_epi,
-            'proba_epi_std': proba_epi_std,
-            'entropy_epi': entropy_epi,
-            'proba_std': proba_std_instance,
-            'entropy':  entropy_instance,
-            'muinfo': muinfo_instance,
-            'mu_mean': logits_mu_mean,
-            'sigma_aleatoric': logits_sigma_aleatoric,
-            'sigma_epistermic': logits_sigma_epistermic,
-            'quadrant': quadrant
+            "index": idx,
+            "target": target,
+            "label_pred": label_pred,
+            "label_conf": label_conf,
+            "proba_ale": proba_ale,
+            "proba_ale_std": proba_ale_std,
+            "entropy_ale": entropy_ale,
+            "proba_epi": proba_epi,
+            "proba_epi_std": proba_epi_std,
+            "entropy_epi": entropy_epi,
+            "proba_std": proba_std_instance,
+            "entropy": entropy_instance,
+            "muinfo": muinfo_instance,
+            "mu_mean": logits_mu_mean,
+            "sigma_aleatoric": logits_sigma_aleatoric,
+            "sigma_epistermic": logits_sigma_epistermic,
+            "quadrant": quadrant,
         }
         uq_list.append(uq_dict)
-    result_dict['uq'] = uq_list
+    result_dict["uq"] = uq_list
     return result_dict
+
 
 def prepare_for_json_dump(result_dict):
     for k in result_dict.keys():
-        result_dict[k] = result_dict[k].cpu().numpy() if isinstance(result_dict[k], torch.Tensor) else result_dict[k]
-        result_dict[k] = result_dict[k].tolist() if isinstance(result_dict[k], np.ndarray) else result_dict[k]
+        result_dict[k] = (
+            result_dict[k].cpu().numpy()
+            if isinstance(result_dict[k], torch.Tensor)
+            else result_dict[k]
+        )
+        result_dict[k] = (
+            result_dict[k].tolist()
+            if isinstance(result_dict[k], np.ndarray)
+            else result_dict[k]
+        )
     return result_dict
+
 
 def result_to_json(result_dict):
     for k in result_dict:
@@ -253,37 +301,53 @@ def result_to_json(result_dict):
             result = prepare_for_json_dump(result)
             result_dict[k] = result
         else:
-            raise ValueError('unsupported data type {}'.format(type(result)))
+            raise ValueError("unsupported data type {}".format(type(result)))
     json = result_dict_to_json(result_dict)
     return json
 
 
-def run_experiment(config:ExperimentConfig) -> dict:
+def run_experiment(config: ExperimentConfig) -> dict:
     result_dict = dict()
-    for method in ['init', 'ehal', 'elah', 'ehah', 'elal', 'aleh', 'ahel', 'aheh', 'alel']:
+    for method in [
+        "init",
+        "ehal",
+        "elah",
+        "ehah",
+        "elal",
+        "aleh",
+        "ahel",
+        "aheh",
+        "alel",
+    ]:
         result_dict[method] = []
 
     test_dataloader, ps_columns, ensemble = load_from_checkpoint(config, tag=None)
-    result_dict['init'] = compute_eval_metrics(ensemble, test_dataloader, device=config.device)
+    result_dict["init"] = compute_eval_metrics(
+        ensemble, test_dataloader, device=config.device
+    )
 
-    for method in ['ehal', 'elah', 'ehah', 'elal', 'aleh', 'ahel', 'aheh', 'alel']:
+    for method in ["ehal", "elah", "ehah", "elal", "aleh", "ahel", "aheh", "alel"]:
         result_list = []
         for i in range(5):
-            logger.info('run {} method for step {}'.format(method, i))
-            ensemble = load_ensemble_from_checkpoint(config, ps_columns, tag='{}_{}'.format(i, method))
+            logger.info("run {} method for step {}".format(method, i))
+            ensemble = load_ensemble_from_checkpoint(
+                config, ps_columns, tag="{}_{}".format(i, method)
+            )
 
-            result_list.append(compute_eval_metrics(ensemble, test_dataloader, device=config.device))
-            logger.info('done {} at {}'.format(method, i))
+            result_list.append(
+                compute_eval_metrics(ensemble, test_dataloader, device=config.device)
+            )
+            logger.info("done {} at {}".format(method, i))
         result_dict[method] = result_list
 
     return result_dict
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     init_logging(logger, __file__, append=True)
-    
+
     config = setup_experiment()
-    
+
     result_dict = run_experiment(config)
     json = result_to_json(result_dict)
     print(json)
-    

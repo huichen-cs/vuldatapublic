@@ -1,0 +1,111 @@
+# %%
+import argparse
+import json
+import glob
+import os
+import sys
+from matplotlib import pyplot as plt
+
+from result.plotter import plot_algs_metrics_vs_var
+
+def load_metrics(file_pattern, metric_name_list=('f1', 'acc', 'brier score')):
+    data = dict()
+    for metric_name in metric_name_list:
+        data[metric_name] = []
+    si_list = []
+    for fpath in sorted(glob.glob(file_pattern)):
+        with open(fpath, mode='rt', encoding='utf-8') as f:
+            d_list = json.load(f)
+        for metric_name in metric_name_list:
+            metrics = [d[metric_name] for d in d_list if metric_name in d.keys()]
+            if metrics:
+                data[metric_name].append(metrics)
+                # print(metric_name, fpath, len(metrics))
+                # assert len(metrics) == 41
+        sigmas = [d['sigma'] for d in d_list]
+        si_list.append(sigmas)
+    return si_list, data
+
+
+def init_argparse() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        usage='%(prog)s [-m im_ratio] [-p metric_to_plot] [-r result_dir] [-f figure_dir]',
+        description='Plot UQ results.'
+    )
+
+    parser.add_argument('-m', '--im_ratio',
+                        help='imbalancing ration, such as 1, 2, 3, and 4')
+    parser.add_argument('-p', '--to_plot',
+                        help='metrics to plot, options are \'all\', \'f1\', \'acc\', \'brier score\', \'ece\'')
+    parser.add_argument('-r', '--result_dir',
+                        help='result directory')
+    parser.add_argument('-f', '--figure_dir',
+                    help='figure directory')
+
+    return parser
+
+def get_filepattern_from_cmdline():
+    parser = init_argparse()
+    args = parser.parse_args()
+    if args.im_ratio:
+        filepattern =  'bertsap_shift_{}_im' + str(args.im_ratio)
+    else:
+        parser.print_help()
+        return None, None, None
+
+    figfnpart = filepattern.replace('_{}_', '_')
+    filepattern =  filepattern + '_r*.json'
+    to_plot = 'all'
+
+    result_dir = 'uncertainty/result/bertsap/shift'
+    if args.result_dir:
+        result_dir = args.result_dir
+    figure_dir = 'uncertainty/result/figures'
+    if args.figure_dir:
+        figure_dir = args.figure_dir
+    return filepattern, figfnpart, to_plot, result_dir, figure_dir
+
+
+if __name__ == '__main__':
+    fn_pattern_part, fig_fn_part, to_plot, result_dir, figures_dir = get_filepattern_from_cmdline()
+    if not fn_pattern_part:
+        sys.exit(0)
+    print('working from {}'.format(os.getcwd()))
+
+    fig_fn_dict = {'f1': os.path.join(figures_dir, fig_fn_part + '_f1.pdf'),
+                   'acc': os.path.join(figures_dir, fig_fn_part + '_acc.pdf'),
+                   'brier score': os.path.join(figures_dir, fig_fn_part + '_brier.pdf'),
+                   'ece': os.path.join(figures_dir, fig_fn_part + '_ece.pdf'),
+                   'auroc': os.path.join(figures_dir, fig_fn_part + '_auroc.pdf'),
+                   'auprc': os.path.join(figures_dir, fig_fn_part + '_auprc.pdf')}
+    metric_list = ['f1', 'acc', 'brier score', 'ece', 'auroc', 'auprc']
+    metric_label_list = ['F1 Score', 'Accuracy', 'Brier Score', 'ECE', 'AUROC', 'AUPRC']
+    data_files = os.path.join(result_dir, fn_pattern_part.format('ensemble'))
+    en_si_list, en_result_dict = load_metrics(data_files, metric_name_list=metric_list)
+    data_files = os.path.join(result_dir, fn_pattern_part.format('dropout'))
+    do_si_list, do_result_dict = load_metrics(data_files, metric_name_list=metric_list)
+    data_files = os.path.join(result_dir, fn_pattern_part.format('vanilla'))
+    va_si_list, va_result_dict = load_metrics(data_files, metric_name_list=metric_list)
+    for metric,label in zip(metric_list, metric_label_list):
+        if to_plot == 'all' or to_plot == metric:
+            plot_algs_metrics_vs_var({
+                                        'en': (en_si_list, en_result_dict[metric]),
+                                        'do': (do_si_list, do_result_dict[metric]),
+                                        'va': (va_si_list, va_result_dict[metric])
+                                    },
+                                    {
+                                        'va': 'dotted',
+                                        'do': 'dashdot',
+                                        'en': 'dashed'
+                                    },
+                                    {
+                                        'va': 1,
+                                        'do': 1,
+                                        'en': 1,
+                                    },
+                                    r'Shift Intensity ($\sigma$)', label,
+                                    {'va': 'Vanilla', 'do': 'Dropout', 'en': 'Ensemble'},
+                                    fig_size=(4, 2.8),
+                                    fig_fn=fig_fn_dict[metric],
+                                    smoother=0.7)
+        plt.show()

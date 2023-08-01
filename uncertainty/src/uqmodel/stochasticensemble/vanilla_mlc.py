@@ -1,13 +1,14 @@
 import torch
 from typing import Generator
 
+
 class VanillaClassifier(object):
-    def __init__(self, model, outputs:int=2):
+    def __init__(self, model, outputs: int = 2):
         self.model = model
         self.n_outputs = outputs
 
-    def predict_logits(self, data_loader:torch.utils.data.DataLoader):
-        if next(self.model.parameters()).get_device() >=0:
+    def predict_logits(self, data_loader: torch.utils.data.DataLoader):
+        if next(self.model.parameters()).get_device() >= 0:
             device = torch.device("cuda")
         else:
             device = torch.device("cpu")
@@ -23,11 +24,10 @@ class VanillaClassifier(object):
                 batch_list.append(logits)
         return torch.cat(batch_list, dim=0)
 
-    def predict_logits_proba(self, data_loader:torch.utils.data.DataLoader):
+    def predict_logits_proba(self, data_loader: torch.utils.data.DataLoader):
         logits = self.predict_logits(data_loader)
         proba = torch.softmax(logits, dim=-1)
         return logits, proba
-
 
     def predict_proba(self, test_dataloader, device=None):
         with torch.no_grad():
@@ -50,8 +50,9 @@ class VanillaClassifier(object):
             yield torch.max(proba_batch, dim=1)
 
     @classmethod
-    def compute_class_with_conf(self, proba_generator:Generator[torch.Tensor, None, None], device=None):
+    def compute_class_with_conf(
+        self, proba_generator: Generator[torch.Tensor, None, None], device=None
+    ):
         for proba_batch in proba_generator:
             proba, labels = torch.max(proba_batch, dim=1)
             yield proba, labels
-

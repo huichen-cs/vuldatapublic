@@ -6,13 +6,14 @@ from datetime import datetime
 from uqmodel.bert.data import (
     BertExperimentDatasets,
 )
+
 # from uqmodel.predictive.focalloss_clcarwin import FocalLoss
 from uqmodel.bert.checkpoint import EnsembleCheckpoint
 from uqmodel.bert.early_stopping import EarlyStopping
 from uqmodel.bert.experiment import (
     ExperimentConfig,
     get_experiment_config,
-    setup_reproduce
+    setup_reproduce,
 )
 from uqmodel.bert.ensemble_bert import EnsembleBertClassifier
 from uqmodel.bert.ensemble_trainer import EnsembleTrainer
@@ -23,8 +24,9 @@ logger = logging.getLogger(__name__)
 
 
 def get_datetime_jobid():
-    date_time = datetime.now().strftime('%Y%m%d%H%M%S')
+    date_time = datetime.now().strftime("%Y%m%d%H%M%S")
     return date_time
+
 
 # def get_dataset_stats(ds:torch.utils.data.Dataset) -> dict:
 #     n_rows = len(ds)
@@ -60,18 +62,20 @@ def get_datetime_jobid():
 #     logger.info('focal loss alpha: {}, focal loss gamma: {}'.format(focal_alpha, focal_gamma))
 #     return loss
 
-def get_trained_model(config:ExperimentConfig,
-                      datasets:BertExperimentDatasets):
-    stopper = EarlyStopping(patience=config.trainer.early_stopping.patience,
-                            min_delta=config.trainer.early_stopping.min_delta)
-   
+
+def get_trained_model(config: ExperimentConfig, datasets: BertExperimentDatasets):
+    stopper = EarlyStopping(
+        patience=config.trainer.early_stopping.patience,
+        min_delta=config.trainer.early_stopping.min_delta,
+    )
+
     ensemble = EnsembleBertClassifier(
         config.model.ensemble_size,
         num_classes=config.model.num_classes,
         neurons=config.model.num_neurons,
         dropouts=config.model.dropout_ratios,
         activation=config.model.activation,
-        cache_dir=config.cache_dir
+        cache_dir=config.cache_dir,
     )
 
     # lr_scheduler_params = {
@@ -86,31 +90,39 @@ def get_trained_model(config:ExperimentConfig,
         trainer_config=config.trainer,
         device=config.device,
         earlystopping=stopper,
-        tensorboard_log=(config.trainer.tensorboard_logdir, 'train/{}'.format(get_datetime_jobid()))
+        tensorboard_log=(
+            config.trainer.tensorboard_logdir,
+            "train/{}".format(get_datetime_jobid()),
+        ),
     )
 
-    if config.trainer.use_model == 'use_checkpoint':
+    if config.trainer.use_model == "use_checkpoint":
         try:
             ensemble, _ = ensemble_trainer.load_checkpoint()
-            logger.info('use the ensemble model from checkpoint, no training')
+            logger.info("use the ensemble model from checkpoint, no training")
         except FileNotFoundError as err:
-            logger.info('training the ensemble model from scratch')
+            logger.info("training the ensemble model from scratch")
             raise err
     else:
-        logger.info('training the ensemble model from scratch')
+        logger.info("training the ensemble model from scratch")
         ensemble_trainer.fit()
         ensemble, _ = ensemble_trainer.load_checkpoint()
     return ensemble
 
 
-def get_trained_ensemble_model(config:ExperimentConfig,
-                               datasets:BertExperimentDatasets,
-                               load_trained:bool=False):
-    logger.info('N(train_dataset): {}, N(val_dataset): {}'
-                .format(len(datasets.train_dataset), len(datasets.val_dataset)))
+def get_trained_ensemble_model(
+    config: ExperimentConfig,
+    datasets: BertExperimentDatasets,
+    load_trained: bool = False,
+):
+    logger.info(
+        "N(train_dataset): {}, N(val_dataset): {}".format(
+            len(datasets.train_dataset), len(datasets.val_dataset)
+        )
+    )
     if load_trained:
         old_use_model = config.trainer.use_model
-        config.trainer.use_model = 'use_checkpoint'
+        config.trainer.use_model = "use_checkpoint"
     ensemble = get_trained_model(config, datasets)
     if load_trained:
         config.trainer.use_model = old_use_model
@@ -121,7 +133,7 @@ def setup_experiment() -> ExperimentConfig:
     config = get_experiment_config()
 
     if not os.path.exists(config.data.data_dir):
-        raise ValueError(f'data_dir {config.data.data_dir} inaccessible')
+        raise ValueError(f"data_dir {config.data.data_dir} inaccessible")
 
     if config.reproduce:
         setup_reproduce(config)
@@ -141,19 +153,19 @@ def setup_experiment() -> ExperimentConfig:
     return config
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     init_logging(__file__, append=True)
 
     config = setup_experiment()
 
-    ckpt = EnsembleCheckpoint(config.model.ensemble_size,
-                              config.trainer.checkpoint.dir_path,
-                              warmup_epochs=config.trainer.checkpoint.warmup_epochs)
+    ckpt = EnsembleCheckpoint(
+        config.model.ensemble_size,
+        config.trainer.checkpoint.dir_path,
+        warmup_epochs=config.trainer.checkpoint.warmup_epochs,
+    )
     datasets = BertExperimentDatasets(config, tag=None)
     # dataloaders = BertExperimentDataLoaders(config, datasets, train=True)
     # focal_loss_ensemble = [get_focal_loss(config, datasets.train_dataset)
     #                        for _ in range(config.model.ensemble_size)]
-    ensemble = get_trained_ensemble_model(config,
-                                          datasets,
-                                          load_trained=False)
-    logger.info('Training completed')
+    ensemble = get_trained_ensemble_model(config, datasets, load_trained=False)
+    logger.info("Training completed")

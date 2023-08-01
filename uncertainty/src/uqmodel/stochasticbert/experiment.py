@@ -4,21 +4,22 @@ import os
 import random
 import torch
 
+
 def init_argparse() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        usage='%(prog)s [-c config_file] [...]',
-        description='Run an UQ experiment.'
+        usage="%(prog)s [-c config_file] [...]", description="Run an UQ experiment."
     )
 
-    parser.add_argument('-c', '--config')
+    parser.add_argument("-c", "--config")
 
     return parser
+
 
 class ExperimentConfig(object):
     def __init__(self):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.cache_dir = os.path.expanduser('~/.hfcache')
-        self.data_dir = 'methods/VCMatch/data/SAP'
+        self.cache_dir = os.path.expanduser("~/.hfcache")
+        self.data_dir = "data/bertsap"
         self.batch_size = 10
         self.max_encoding_len = 512
         self.num_classes = 2
@@ -30,11 +31,14 @@ class ExperimentConfig(object):
         self.imbalance_ratio = 1
         #
         self.model_ensemble_size = 5
-        self.dropout_proba = 0.1
+        self.num_classes = 2
+        self.num_neurons = [1024, 2048, 512]
+        self.dropout_ratios = [None, 0.25, 0.25]
+        self.activation = "leakyrelu"
         #
         self.trainer_max_dataloader_workers = 0
         self.trainer_cpu_only = False
-        self.trainer_use_model = 'try_checkpoint'
+        self.trainer_use_model = "try_checkpoint"
         self.trainer_early_stopping_patience = 5
         self.trainer_early_stopping_min_delta = 0
         self.trainer_lr_scheduler_step_size = 10
@@ -43,7 +47,7 @@ class ExperimentConfig(object):
         self.trainer_optimizer_init_lr = 2e-5
         self.trainer_aleatoric_samples = 100
         #
-        self.trainer_checkpoint_dir_path = 'uq_testdata_ckpt/activede/bert/sap/v1/test1'
+        self.trainer_checkpoint_dir_path = "uq_testdata_ckpt/activede/bert/sap/v1/test1"
         self.trainer_checkpoint_warmup_epochs = 1
         #
         self.reproduce = True
@@ -53,7 +57,7 @@ class ExperimentConfig(object):
         #
         self.pin_memory = False
         #
-        self.trainer_tensorboard_logdir = 'tb_logdir_bert'
+        self.trainer_tensorboard_logdir = "tb_logdir_bert"
         #
         self.config_fn = ""
         #

@@ -202,7 +202,6 @@ tqdm==4.64.1
 traitlets==5.9.0
 transformers==4.22.2
 typing_extensions==4.5.0
-unidiff==0.7.0
 uri-template==1.2.0
 urllib3==1.26.4
 wcwidth==0.2.5
@@ -213,5 +212,4 @@ Werkzeug==1.0.1
 wheel==0.37.1
 widgetsnbextension==4.0.5
 wrapt==1.12.1
-xgboost==1.6.2
 zipp==3.5.0
