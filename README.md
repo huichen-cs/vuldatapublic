@@ -19,7 +19,7 @@ The Python Requirements file is in the replication package.
 - `uncertainty/src`: Python source code
 - `uncertainty/scripts`: Shell scripts that run experiments by calling the Python programs
 
-### Scripts and Program Naming Convention
+## Scripts and Program Naming Convention
 The programs and scripts are written to experiment on combinations of UQ
 approaches. These approaches combine data modeling (homoscedastic and heteroscedastic),
 UQ estimation (vanilla, Model Ensemble, and Monte Carlo Dropout). We apply these
@@ -48,3 +48,13 @@ we can retrieve the help message:
 ```bash
 PYTHONPATH=uncertainty/src python uncertainty/src/hmsc_bert_sapdata_shift_train.py --help
 ```
+
+## File Catalogue
+|Purpose|Data Model|UQ Approximation|Feature| Dataset|Shell Script| Main Python Program | Python Package |
+|-------|----------|----------------|-------|--------|------------|---------------------|----------------|
+| RQ1: Dataset Quality Shift|Homoscedastic|Model Ensemble|PatchScout|VCMath|run_hmsc_psvcm_gn_shift_train.sh|htsc_ps_vcmdata_shift_train.py|uqmodel.ensemble|
+| RQ1: Dataset Quality Shift|Homoscedastic|Monte Carlo Dropout|PatchScout|VCMath|run_hmsc_psvcm_gn_shift_train.sh|htsc_ps_vcmdata_shift_train.py|uqmodel.ensemble|
+| RQ1: Dataset Quality Shift|Homoscedastic|Vanilla|PatchScout|VCMath|run_hmsc_psvcm_gn_shift_train.sh|htsc_ps_vcmdata_shift_train.py|uqmodel.ensemble|
+| RQ1: Dataset Quality Shift|Heteroscedastic|Model Ensemble|PatchScout|VCMath|run_htsc_psvcm_gn_shift_train.sh|htsc_ps_vcmdata_shift_train.py|uqmodel.ensemble|
+| RQ1: Dataset Quality Shift|Heteroscedastic|Monte Carlo Dropout|PatchScout|VCMath|run_htsc_psvcm_gn_shift_train.sh|htsc_ps_vcmdata_shift_train.py|uqmodel.ensemble|
+| RQ1: Dataset Quality Shift|Heteroscedastic|Vanilla|PatchScout|VCMath|run_htsc_psvcm_gn_shift_train.sh|htsc_ps_vcmdata_shift_train.py|uqmodel.ensemble|
