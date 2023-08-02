@@ -5,6 +5,7 @@ import os
 import torch
 import torchmetrics
 from packaging import version
+from typing import Tuple
 
 # from typing import Tuple
 # from .calibration_error import binary_calibration_error
@@ -581,3 +582,76 @@ def add_predictive_uq_to_result_dict(result_dict: dict, uq):
         }
     result_dict.update(uq_dict)
     return result_dict
+
+
+class StochasticEnsembleModelSelector(object):
+    def __init__(
+        self,
+        ensemble: StochasticEnsembleClassifier,
+        dataloder: torch.utils.data.DataLoader,
+        config: ExperimentConfig,
+    ):
+        self.ensemble = ensemble
+        self.dataloader = dataloder
+        self.config = config
+
+    def _predict_class_by_individual(
+        self, model_idx: int
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        predicted_list, targets_list = [], []
+        n_batches = len(self.dataloader)
+        self.ensemble.to(self.config.device)
+        for idx, batch in enumerate(self.dataloader):
+            logger.debug(
+                "computing proba for batch {} of {} for model {}".format(
+                    idx, n_batches, model_idx
+                )
+            )
+            x, target_labels = batch
+            x = x.to(self.config.device)
+            target_labels = target_labels.to(self.config.device)
+            proba = self.ensemble[model_idx].predict_proba_from_mu(x)
+            predicted_labels = torch.argmax(proba, dim=1)
+            predicted_list.append(predicted_labels)
+            targets_list.append(target_labels)
+        predicted_labels = torch.cat(predicted_list, dim=0)
+        target_labels = torch.cat(targets_list, dim=0)
+        return predicted_labels, target_labels
+
+    def select_member_model(
+        self, selection_critieria="best_f1"
+    ) -> StochasticMultiLayerClassifier:
+        if selection_critieria == "random":
+            idx = np.random.randint(0, high=len(self.ensemble), dtype=int)
+            return self.ensemble[idx]
+
+        scores = np.zeros(len(self.ensemble))
+        for i in range(len(self.ensemble)):
+            if selection_critieria in ["best_f1", "median_f1"]:
+                logger.debug("predicting for member model {}".format(i))
+                predicted_labels, target_labels = self._predict_class_by_individual(i)
+                f1 = torchmetrics.functional.classification.binary_f1_score(
+                    predicted_labels, target_labels
+                )
+                scores[i] = f1
+            else:
+                raise ValueError(
+                    "unsupported selection_criteria {}".format(selection_critieria)
+                )
+        if selection_critieria == "best_f1":
+            idx = np.argmax(scores)
+        elif selection_critieria == "median_f1":
+            idx = scores.tolist().index(
+                np.percentile(scores, 50, interpolation="nearest")
+            )
+        elif selection_critieria == "random":
+            pass
+        else:
+            raise ValueError(
+                "unsupported member model selection method {}".format(
+                    selection_critieria
+                )
+            )
+        logger.info("selected member model {} with scores {}".format(idx, scores))
+        self.ensemble.to(torch.device("cpu"))
+        return self.ensemble[idx]

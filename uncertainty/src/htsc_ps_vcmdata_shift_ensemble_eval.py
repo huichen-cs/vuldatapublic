@@ -6,15 +6,18 @@ import logging
 import os
 import torch
 
-from uqmodel.ensemble.logging_utils import init_logging
-from uqmodel.ensemble.dataloader_utils import get_test_label
-from uqmodel.ensemble.eval_utils import (
+from uqmodel.stochasticensemble.logging_utils import init_logging
+from uqmodel.stochasticensemble.dataloader_utils import get_test_label
+from uqmodel.stochasticensemble.eval_utils import (
     load_from_checkpoint_with_datashift,
     compute_uq_eval_metrics,
     result_dict_to_json,
 )
-from uqmodel.ensemble.experiment_config import get_experiment_config, setup_reproduce
-from uqmodel.ensemble.eval_utils import EnsembleDisentangledUq
+from uqmodel.stochasticensemble.experiment_config import (
+    get_experiment_config,
+    setup_reproduce,
+)
+from uqmodel.stochasticensemble.eval_utils import EnsembleDisentangledUq
 
 
 logger = logging.getLogger(__name__)
@@ -28,6 +31,7 @@ if __name__ == "__main__":
         setup_reproduce(config.reproduce)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    ensemble = None
     (
         train_dataloader,
         val_dataloader,

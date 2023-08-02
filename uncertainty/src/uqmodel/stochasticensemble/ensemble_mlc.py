@@ -1,14 +1,18 @@
 """
 An ensemble of simple MLP classifiers.
 """
+import logging
 import numpy as np
 import torch
 import torchmetrics
 from typing import Sequence
 
-from uqmodel.stochasticensemble.dataloader_utils import get_test_label
-from uqmodel.stochasticensemble.stochastic_metrics import softmax_batch
-from uqmodel.stochasticensemble.mlc import MultiLayerClassifier
+from .dataloader_utils import get_test_label
+from .stochastic_metrics import softmax_batch
+from .mlc import MultiLayerClassifier
+
+
+logger = logging.getLogger(__name__)
 
 
 class StochasticEnsembleClassifier(object):
@@ -259,7 +263,6 @@ class EnsembleClassifier(object):
             yield proba, labels
 
     def _predict_proba_by_individual(self, model_idx, test_dataloader, device=None):
-        # trunk-ignore(bandit/B101)
         assert 0 <= model_idx < self.__len__()
         # testing
         with torch.no_grad():

@@ -104,7 +104,8 @@ way each only depends on a single package in `uqmodel` under directory
 |htsc_bert_vcmdata_shift_ensemble_eval.py|               |Ensemble |          |   |model evaluation|
 |htsc_ps_vcmdata_shift_train.py          |               |Ensemble |PatchScout|VCM|model training  |
 |htsc_ps_vcmdata_shift_ensemble_eval.py  |               |         |          |   |model evaluation|
-|htsc_ps_vcmdata_shift_eval.py           |               |         |          |   |model evaluation, generic|
+|htsc_ps_vcmdata_shift_dropout_eval.py   |               |Dropout  |          |   |                |
+|htsc_ps_vcmdata_shift_vanilla_eval.py   |               |Dropout  |          |   |                |
 |hmsc_ps_vcmdata_shift_dvol_test.py      |Homoscedastic  |Ensemble |PatchScout|   |traing for data volume tests |
 |htsc_bert_sapdata_active_learn_test.py  |Heteroscedastic|Ensemble |Embedding |SAP|training data quality tests|
 |htsc_bert_sapdata_active_learn_eval.py  |               |         |          |   |evaluation                 |

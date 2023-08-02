@@ -49,7 +49,6 @@ class StochasticMultiLayerClassifier(torch.nn.Module):
             activation, the default is Leaky RELU.
         """
         super().__init__()
-        # trunk-ignore(bandit/B101)
         assert len(neurons) == len(dropouts)
 
         self._output_log_sigma = output_log_sigma
@@ -161,6 +160,13 @@ class StochasticMultiLayerClassifier(torch.nn.Module):
             shared_layer_dict[name] = activation
         else:
             raise ValueError("activation is not a torch.nn.Module")
+
+    def predict(self, x):
+        with torch.no_grad():
+            logits_mu, logits_sigma = self.forward(x)
+            proba = torch.nn.functional.softmax(logits_mu, dim=1)
+            confidence, labels = torch.max(proba, dim=1)
+        return logits_mu, logits_sigma, proba, confidence, labels
 
     @property
     def output_log_sigma(self):
