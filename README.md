@@ -60,13 +60,13 @@ PYTHONPATH=uncertainty/src python uncertainty/src/hmsc_bert_sapdata_shift_train.
 | RQ1: Dataset Quality Shift|Heteroscedastic|Vanilla|PatchScout|VCMatch|run_htsc_psvcm_gn_shift_train.sh|htsc_ps_vcmdata_shift_train.py|uqmodel.ensemble|
 | RQ1: Dataset Quality Shift|Homoscedastic|Model Ensemble|CodeBert|VCMatch|run_bert_bertvcm_gn_shift_train.sh|htsc_bert_vcmdata_shift_train.py|uqmodel.ensemble|
 | RQ1: Dataset Quality Shift|Homoscedastic|Monte Carlo Dropout|CodeBert|VCMatch|run_hmsc_bertvcm_gn_shift_train.sh|htsc_bert_vcmdata_shift_train.py|uqmodel.ensemble|
-| RQ1: Dataset Quality Shift|Homoscedastic|Vanilla|PatchScout|CodeBert|VCMatch|run_hmsc_bertvcm_gn_shift_train.sh|htsc_bert_vcmdata_shift_train.py|uqmodel.ensemble|
+| RQ1: Dataset Quality Shift|Homoscedastic|Vanilla|CodeBert|VCMatch|run_hmsc_bertvcm_gn_shift_train.sh|htsc_bert_vcmdata_shift_train.py|uqmodel.ensemble|
 | RQ1: Dataset Quality Shift|Heteroscedastic|Model Ensemble|CodeBert|VCMatch|run_htsc_bertvcm_gn_shift_train.sh|htsc_bert_vcmdata_shift_train.py|uqmodel.ensemble|
 | RQ1: Dataset Quality Shift|Heteroscedastic|Monte Carlo Dropout|CodeBert|VCMatch|run_htsc_bertvcm_gn_shift_train.sh|htsc_bert_vcmdata_shift_train.py|uqmodel.ensemble|
-| RQ1: Dataset Quality Shift|Heteroscedastic|Vanilla|PatchScout|CodeBert|VCMatch|run_htsc_bertvcm_gn_shift_train.sh|htsc_bert_vcmdata_shift_train.py|uqmodel.ensemble|
+| RQ1: Dataset Quality Shift|Heteroscedastic|Vanilla|CodeBert|VCMatch|run_htsc_bertvcm_gn_shift_train.sh|htsc_bert_vcmdata_shift_train.py|uqmodel.ensemble|
 | RQ1: Dataset Quality Shift|Homoscedastic|Model Ensemble|CodeBert|SAP|run_bert_bertsap_gn_shift_train.sh|htsc_bert_sapdata_shift_train.py|uqmodel.ensemble|
 | RQ1: Dataset Quality Shift|Homoscedastic|Monte Carlo Dropout|CodeBert|SAP|run_hmsc_bertsap_gn_shift_train.sh|htsc_bert_vcmdata_shift_train.py|uqmodel.ensemble|
-| RQ1: Dataset Quality Shift|Homoscedastic|Vanilla|PatchScout|CodeBert|SAP|run_hmsc_bertsap_gn_shift_train.sh|htsc_bert_sapdata_shift_train.py|uqmodel.ensemble|
+| RQ1: Dataset Quality Shift|Homoscedastic|Vanilla|CodeBert|SAP|run_hmsc_bertsap_gn_shift_train.sh|htsc_bert_sapdata_shift_train.py|uqmodel.ensemble|
 | RQ1: Dataset Quality Shift|Heteroscedastic|Model Ensemble|CodeBert|SAP|run_htsc_bertsap_gn_shift_train.sh|htsc_bert_sapdata_shift_train.py|uqmodel.ensemble|
 | RQ1: Dataset Quality Shift|Heteroscedastic|Monte Carlo Dropout|CodeBert|SAP|run_htsc_bertsap_gn_shift_train.sh|htsc_bert_sapdata_shift_train.py|uqmodel.ensemble|
-| RQ1: Dataset Quality Shift|Heteroscedastic|Vanilla|PatchScout|CodeBert|SAP|run_htsc_bertsap_gn_shift_train.sh|htsc_bert_sapdata_shift_train.py|uqmodel.ensemble|
+| RQ1: Dataset Quality Shift|Heteroscedastic|Vanilla|CodeBert|SAP|run_htsc_bertsap_gn_shift_train.sh|htsc_bert_sapdata_shift_train.py|uqmodel.ensemble|
