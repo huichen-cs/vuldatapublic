@@ -80,7 +80,7 @@ def main():
     evaluator = StochasticDropoutBertClassifierEvalautor(
         config, dropout_model, datasets.test_dataset
     )
-    result_dict = evaluator.compute_eval_metrics(config.device)
+    result_dict = evaluator.compute_eval_metrics(config)
 
     print(json.dumps(result_dict, indent=2))
     logger.info("Eval completed")

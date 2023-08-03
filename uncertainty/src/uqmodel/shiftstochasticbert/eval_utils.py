@@ -539,8 +539,8 @@ class StochasticEnsembleModelSelector(object):
         self, selection_critieria="best_f1"
     ) -> StochasticBertBinaryClassifier:
         if selection_critieria == "random":
-            idx = np.random.randint(0, high=self.__len__(), dtype=int)
-            return self.model_ensemble[idx]
+            idx = np.random.randint(0, high=len(self.ensemble), dtype=int)
+            return self.ensemble[idx]
 
         scores = np.zeros(len(self.ensemble))
         for i in range(len(self.ensemble)):
