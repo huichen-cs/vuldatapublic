@@ -20,10 +20,10 @@ class StochasticDropoutBertClassifier(object):
     def to(self, device: torch.DeviceObjType):
         self.model = self.model.to(device)
         return self
-    
+
     def train(self):
         self.model.train()
-    
+
     def eval(self):
         self.model.eval()
 
