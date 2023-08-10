@@ -1,5 +1,40 @@
 """
 https://github.com/rob-blackbourn/medium-queue-logging/.
+
+Note that logging.dict.dictConfig parses handlers in alphabet orders.
+If queue handler appears before file handler, it can have errors:
+
+https://github.com/python/cpython/blob/16c9415fba4972743f1944ebc44946e475e68bc4/Lib/logging/config.py#L579
+
+The following will raise an error:
+handlers:
+  file:
+    class: logging.handlers.RotatingFileHandler
+    formatter: simple
+    filename: logging.log
+    maxBytes: 1048576
+    backupCount: 4
+    level: DEBUG
+  bert_queue_listener:
+    class: uqmodel.stochasticbert.logging_utils.QueueListenerHandler
+    handlers:
+      - cfg://handlers.file
+    queue: cfg://objects.queue
+because bert_queue_listener appears before file while it references to the file handler.
+We can fix it by either rename file or rename bert_queue_listener, e.g.,
+handlers:
+  file:
+    class: logging.handlers.RotatingFileHandler
+    formatter: simple
+    filename: logging.log
+    maxBytes: 1048576
+    backupCount: 4
+    level: DEBUG
+  z_bert_queue_listener:
+    class: uqmodel.stochasticbert.logging_utils.QueueListenerHandler
+    handlers:
+      - cfg://handlers.file
+    queue: cfg://objects.queue
 """
 from logging.config import ConvertingList, ConvertingDict, valid_ident
 from logging.handlers import QueueHandler, QueueListener

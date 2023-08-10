@@ -1,5 +1,5 @@
 import torch
-from uqmodel.shiftstochasticbert.stochastic_bert_mlc import (
+from .stochastic_bert_mlc import (
     StochasticBertBinaryClassifier,
 )
 

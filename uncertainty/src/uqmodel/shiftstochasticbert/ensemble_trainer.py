@@ -6,15 +6,15 @@ from torch.utils import tensorboard
 from tqdm import tqdm
 from typing import List, Tuple, Union
 
-from uqmodel.shiftstochasticbert.loss import StochasticCrossEntropyLoss
-from uqmodel.shiftstochasticbert.stochastic_bert_mlc import (
+from .loss import StochasticCrossEntropyLoss
+from .stochastic_bert_mlc import (
     StochasticBertBinaryClassifier,
 )
-from uqmodel.shiftstochasticbert.data import BertExperimentDatasets
-from uqmodel.shiftstochasticbert.early_stopping import EarlyStopping
-from uqmodel.shiftstochasticbert.experiment import ExperimentConfig
-from uqmodel.shiftstochasticbert.ensemble_bert import StochasticEnsembleBertClassifier
-from uqmodel.shiftstochasticbert.logging_utils import (
+from .data import BertExperimentDatasets
+from .early_stopping import EarlyStopping
+from .experiment import ExperimentConfig
+from .ensemble_bert import StochasticEnsembleBertClassifier
+from .logging_utils import (
     init_logging,
     get_global_logfilename,
 )

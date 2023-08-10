@@ -3,8 +3,8 @@ import os
 import torch
 import collections
 from typing import Iterator, List, Optional, Sequence, Union
-from uqmodel.shiftbert.bert_mlc import BertBinaryClassifier
-from uqmodel.shiftbert.datashift import DataShift
+from .bert_mlc import BertBinaryClassifier
+from .datashift import DataShift
 
 
 class EnsembleBertClassifier(collections.abc.Iterator):

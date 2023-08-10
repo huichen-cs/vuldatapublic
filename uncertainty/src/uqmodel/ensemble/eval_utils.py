@@ -8,29 +8,29 @@ from packaging import version
 
 # from typing import Tuple
 # from .calibration_error import binary_calibration_error
-from uqmodel.ensemble.ensemble_mlc import StochasticEnsembleClassifier
-from uqmodel.ensemble.ensemble_trainer import EnsembleTrainer
-from uqmodel.ensemble.train_utils import EnsembleCheckpoint
-from uqmodel.ensemble.sampling_metrics import (
+from .ensemble_mlc import StochasticEnsembleClassifier
+from .ensemble_trainer import EnsembleTrainer
+from .train_utils import EnsembleCheckpoint
+from .sampling_metrics import (
     compute_sampling_entropy,
     compute_sampling_mutual_information,
 )
-from uqmodel.ensemble.uq_metrics import (
+from .uq_metrics import (
     compute_binary_acc_vs_conf_from_tensors,
     compute_binary_metrics_vs_conf_from_tensors,
     brier_score_from_tensors,
 )
-from uqmodel.ensemble.stochastic_metrics import (
+from .stochastic_metrics import (
     softmax_batch,
     entropy_batch,
     softmax_all,
 )
-from uqmodel.ensemble.ensemble_mlc import EnsembleClassifier
-from uqmodel.ensemble.dropout_mlc import DropoutClassifier
-from uqmodel.ensemble.vanilla_mlc import VanillaClassifier
-from uqmodel.ensemble.stochastic_mlc import StochasticMultiLayerClassifier
-from uqmodel.ensemble.experiment_config import ExperimentConfig
-from uqmodel.ensemble.datashift import (
+from .ensemble_mlc import EnsembleClassifier
+from .dropout_mlc import DropoutClassifier
+from .vanilla_mlc import VanillaClassifier
+from .stochastic_mlc import StochasticMultiLayerClassifier
+from .experiment_config import ExperimentConfig
+from .datashift import (
     DataShift,
     ShiftedFeatureDataSet,
     PortionShiftedFeatureDataSet,

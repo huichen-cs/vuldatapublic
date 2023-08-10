@@ -18,7 +18,7 @@ handlers:
     maxBytes: 1048576
     backupCount: 4
     level: DEBUG
-  bert_queue_listener:
+  z_bert_queue_listener:
     class: uqmodel.stochasticbert.logging_utils.QueueListenerHandler
     handlers:
       - cfg://handlers.file
@@ -27,41 +27,41 @@ loggers:
   __main__:
     level: DEBUG
     handlers:
-      - bert_queue_listener
+      - z_bert_queue_listener
     propagate: false
   uqmodel.stochasticbert.checkpoint:
     level: DEBUG
     handlers: 
-      - bert_queue_listener
+      - z_bert_queue_listener
     propagate: false
   uqmodel.stochasticbert.data:
     level: DEBUG
     handlers: 
-      - bert_queue_listener
+      - z_bert_queue_listener
     propagate: false
   uqmodel.stochasticbert.early_stoppping:
     level: DEBUG
     handlers: 
-      - bert_queue_listener
+      - z_bert_queue_listener
     propagate: false
   uqmodel.stochasticbert.ensemble_trainer:
     level: DEBUG
     handlers: 
-      - bert_queue_listener
+      - z_bert_queue_listener
     propagate: false
   uqmodel.stochasticbert.eval_utils:
     level: DEBUG
     handlers: 
-      - bert_queue_listener
+      - z_bert_queue_listener
     propagate: false
   uqmodel.stochasticbert.experiment:
     level: DEBUG
     handlers: 
-      - bert_queue_listener
+      - z_bert_queue_listener
     propagate: false
 
 root:
   level: WARN
   handlers:
     - console
-    - bert_queue_listener
+    - z_bert_queue_listener

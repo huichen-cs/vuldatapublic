@@ -4,7 +4,7 @@ import pickle  # nosec
 import torch
 from typing import List, Tuple, Union
 
-from uqmodel.shiftstochasticbert.stochastic_bert_mlc import (
+from .stochastic_bert_mlc import (
     StochasticBertBinaryClassifier,
 )
 

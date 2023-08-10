@@ -195,7 +195,7 @@ class StochasticBertBinaryClassifier(torch.nn.Module):
             )
         return proba
 
-    def predict_proba_from_mu(self, input_ids, attention_mask, n_samples):
+    def predict_proba_from_mu(self, input_ids, attention_mask):
         with torch.no_grad():
             logits_mu, _ = self.forward(input_ids, attention_mask)
             proba = torch.nn.functional.softmax(logits_mu, dim=1)

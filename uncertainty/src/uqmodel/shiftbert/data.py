@@ -4,10 +4,10 @@ import torch
 import transformers
 from abc import ABC, abstractmethod
 from typing import Union, Tuple
-from uqmodel.shiftbert.ps_data import PsData
-from uqmodel.shiftbert.sap_data import SapData
-from uqmodel.shiftbert.experiment import ExperimentConfig
-from uqmodel.shiftbert.checkpoint import EnsembleCheckpoint
+from .ps_data import PsData
+from .sap_data import SapData
+from .experiment import ExperimentConfig
+from .checkpoint import EnsembleCheckpoint
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +76,6 @@ class TextClassificationDataset(torch.utils.data.TensorDataset):
         input_ids = encoding["input_ids"][0]
         attention_mask = encoding["attention_mask"][0]
         labels = torch.tensor(label)
-        # trunk-ignore(bandit/B101)
         assert len(input_ids) == len(attention_mask) == self.max_len
         return input_ids, attention_mask, labels
 
@@ -187,7 +186,7 @@ class BertExperimentDatasets(object):
                 )
                 train_dataset, val_dataset, test_dataset = self._generate_datasets()
                 self.ckpt.save_datasets(train_dataset, val_dataset, test_dataset)
-        elif self.config.trainer_user_data == "from_scratch":
+        elif self.config.trainer.use_data == "from_scratch":
             train_dataset, val_dataset, test_dataset = self._generate_datasets()
             self.ckpt.save_datasets(train_dataset, val_dataset, test_dataset)
         else:

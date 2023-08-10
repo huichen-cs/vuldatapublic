@@ -6,12 +6,12 @@ from torch.utils import tensorboard
 from tqdm import tqdm
 from typing import List, Tuple, Union
 
-from uqmodel.shiftbert.bert_mlc import BertBinaryClassifier
-from uqmodel.shiftbert.data import BertExperimentDatasets
-from uqmodel.shiftbert.early_stopping import EarlyStopping
-from uqmodel.shiftbert.experiment import ExperimentConfig
-from uqmodel.shiftbert.ensemble_bert import EnsembleBertClassifier
-from uqmodel.shiftbert.logging_utils import init_logging, get_global_logfilename
+from .bert_mlc import BertBinaryClassifier
+from .data import BertExperimentDatasets
+from .early_stopping import EarlyStopping
+from .experiment import ExperimentConfig
+from .ensemble_bert import EnsembleBertClassifier
+from .logging_utils import init_logging, get_global_logfilename
 
 logger = logging.getLogger(__name__)
 

@@ -6,12 +6,12 @@ from torch.utils import tensorboard
 from tqdm import tqdm
 from typing import List, Tuple, Union
 
-from uqmodel.bert.bert_mlc import BertBinaryClassifier
-from uqmodel.bert.data import BertExperimentDatasets
-from uqmodel.bert.early_stopping import EarlyStopping
-from uqmodel.bert.experiment import ExperimentConfig
-from uqmodel.bert.ensemble_bert import EnsembleBertClassifier
-from uqmodel.bert.logging_utils import init_logging, get_global_logfilename
+from .bert_mlc import BertBinaryClassifier
+from .data import BertExperimentDatasets
+from .early_stopping import EarlyStopping
+from .experiment import ExperimentConfig
+from .ensemble_bert import EnsembleBertClassifier
+from .logging_utils import init_logging, get_global_logfilename
 
 logger = logging.getLogger(__name__)
 
@@ -399,9 +399,7 @@ class EnsembleTrainer(object):
             self.ensemble_classifier
         )
         for model_idx, model in enumerate(self.ensemble_classifier):
-            # trunk-ignore(bandit/B101)
             assert isinstance(model_idx, int)
-            # trunk-ignore(bandit/B101)
             assert isinstance(model, BertBinaryClassifier)
             criteria = get_train_criteria(self.trainer_config.criteria)
             optimizer = get_train_optimizer(self.trainer_config.optimizer, model)

@@ -176,3 +176,9 @@ class StochasticMultiLayerClassifier(torch.nn.Module):
     # @property
     # def is_log_sigma_model(self):
     #     return self.output_log_sigma()
+
+    def predict_proba_from_mu(self, x):
+        with torch.no_grad():
+            logits_mu, _ = self.forward(x)
+            proba = torch.nn.functional.softmax(logits_mu, dim=1)
+        return proba

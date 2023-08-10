@@ -42,7 +42,6 @@ class MultiLayerClassifierHead(torch.nn.Module):
             The default is torch.nn.ReLU().
         """
         super().__init__()
-        # trunk-ignore(bandit/B101)
         assert len(neurons) == len(dropouts)
 
         layers: List[torch.nn.Module] = []

@@ -4,11 +4,11 @@ import packaging
 import torch
 import torchmetrics
 from typing import Callable, Dict, List, Tuple, Union
-from uqmodel.shiftbert.bert_mlc import BertBinaryClassifier
-from uqmodel.shiftbert.experiment import ExperimentConfig
-from uqmodel.shiftbert.ensemble_bert import EnsembleBertClassifier
-from uqmodel.shiftbert.dropout_bert import DropoutBertClassifier
-from uqmodel.shiftbert.sampling_metrics import (
+from .bert_mlc import BertBinaryClassifier
+from .experiment import ExperimentConfig
+from .ensemble_bert import EnsembleBertClassifier
+from .dropout_bert import DropoutBertClassifier
+from .sampling_metrics import (
     compute_sampling_entropy,
     compute_sampling_mutual_information,
 )

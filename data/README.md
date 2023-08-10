@@ -1,6 +1,6 @@
 # Data
 
-Download the data in a zipped data achive from Dropbox at:
+Download the data in a zipped data archive from Dropbox at:
 
 [https://www.dropbox.com/sh/qegsbucl30vw6mw/AACcHdbECHUgZTYyPiPAYzYBa?dl=0](https://www.dropbox.com/sh/qegsbucl30vw6mw/AACcHdbECHUgZTYyPiPAYzYBa?dl=0)
 

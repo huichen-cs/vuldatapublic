@@ -2,9 +2,9 @@ import packaging
 import torch
 import torchmetrics
 from typing import Callable, Dict, List, Tuple, Union
-from uqmodel.bert.experiment import ExperimentConfig
-from uqmodel.bert.ensemble_bert import EnsembleBertClassifier
-from uqmodel.bert.sampling_metrics import (
+from .experiment import ExperimentConfig
+from .ensemble_bert import EnsembleBertClassifier
+from .sampling_metrics import (
     compute_sampling_entropy,
     compute_sampling_mutual_information,
 )
@@ -267,7 +267,6 @@ class EnsembleBertClassifierEvalautor(object):
         confidence = torch.cat(confidence_list)
         entropy = compute_sampling_entropy(ensemble_proba)
         mutual_info = compute_sampling_mutual_information(ensemble_proba)
-        # trunk-ignore(bandit/B101)
         assert (
             entropy.shape[0]
             == mutual_info.shape[0]

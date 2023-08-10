@@ -4,8 +4,7 @@ import os
 import torch
 from transformers import AutoModel
 from typing import Any, Sequence, Union, Dict
-from uqmodel.shiftstochasticbert.datashift import DataShift
-from uqmodel.shiftstochasticbert.stochastic_metrics import softmax_batch
+from .stochastic_metrics import softmax_batch
 
 logger = logging.getLogger(__name__)
 

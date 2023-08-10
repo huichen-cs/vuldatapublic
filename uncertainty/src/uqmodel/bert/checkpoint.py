@@ -4,7 +4,7 @@ import pickle  # nosec
 import torch
 from typing import List, Tuple, Union
 
-from uqmodel.bert.bert_mlc import BertBinaryClassifier
+from .bert_mlc import BertBinaryClassifier
 
 logger = logging.getLogger(__name__)
 

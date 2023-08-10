@@ -6,9 +6,9 @@ import torch
 import torchmetrics
 from typing import Sequence
 
-from uqmodel.ensemble.dataloader_utils import get_test_label
-from uqmodel.ensemble.stochastic_metrics import softmax_batch
-from uqmodel.ensemble.mlc import MultiLayerClassifier
+from .dataloader_utils import get_test_label
+from .stochastic_metrics import softmax_batch
+from .mlc import MultiLayerClassifier
 
 
 class StochasticEnsembleClassifier(object):

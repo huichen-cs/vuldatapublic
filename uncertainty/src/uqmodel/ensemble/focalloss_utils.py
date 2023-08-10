@@ -1,6 +1,6 @@
 import logging
 import torch
-from uqmodel.ensemble.ps_data import get_dataset_stats
+from .ps_data import get_dataset_stats
 
 
 logger = logging.getLogger("focalloss")
@@ -14,7 +14,6 @@ def compute_focalloss_alpha(train_dataset, n_classes, imbalance_ratio, device):
             )
         )
     stats = get_dataset_stats(train_dataset)
-    # trunk-ignore(bandit/B101)
     assert stats["n_rows_1"] * imbalance_ratio == stats["n_rows_0"]
     focal_alpha = torch.tensor(
         [

@@ -2,9 +2,9 @@ import logging
 import torch
 import transformers
 from typing import Union
-from uqmodel.bert.sap_data import SapData
-from uqmodel.bert.experiment import ExperimentConfig
-from uqmodel.bert.checkpoint import EnsembleCheckpoint
+from .sap_data import SapData
+from .experiment import ExperimentConfig
+from .checkpoint import EnsembleCheckpoint
 
 logger = logging.getLogger(__name__)
 
@@ -141,7 +141,7 @@ class BertExperimentDatasets(object):
                 )
                 train_dataset, val_dataset, test_dataset = self._generate_datasets()
                 self.ckpt.save_datasets(train_dataset, val_dataset, test_dataset)
-        elif self.config.trainer_user_data == "from_scratch":
+        elif self.config.trainer.use_data == "from_scratch":
             train_dataset, val_dataset, test_dataset = self._generate_datasets()
             self.ckpt.save_datasets(train_dataset, val_dataset, test_dataset)
         else:

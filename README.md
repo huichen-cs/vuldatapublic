@@ -151,3 +151,9 @@ However, in this way, changing one wouldn't break long-running experiments done 
 | RQ1: Dataset Quality Shift|Heteroscedastic|Model Ensemble|CodeBert|SAP|run_htsc_bertsap_gn_shift_train.sh|htsc_bert_sapdata_shift_train.py|uqmodel.ensemble|
 | RQ1: Dataset Quality Shift|Heteroscedastic|Monte Carlo Dropout|CodeBert|SAP|run_htsc_bertsap_gn_shift_train.sh|htsc_bert_sapdata_shift_train.py|uqmodel.ensemble|
 | RQ1: Dataset Quality Shift|Heteroscedastic|Vanilla|CodeBert|SAP|run_htsc_bertsap_gn_shift_train.sh|htsc_bert_sapdata_shift_train.py|uqmodel.ensemble| -->
+
+## Online Supplement
+
+There is a supplementary document to the named research. Find it at in [Dropbox](
+https://www.dropbox.com/scl/fi/d2kn6bf901l7x6z1piqy5/main.pdf?rlkey=1apkyxrml2pektw2xd4wzzpzc&dl=0
+)

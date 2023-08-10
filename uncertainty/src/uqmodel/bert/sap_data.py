@@ -4,9 +4,7 @@ import pandas as pd
 
 
 def split_train_val_test_indices(size: int, train_ratio, val_ratio):
-    # trunk-ignore(bandit/B101)
     assert size > 0
-    # trunk-ignore(bandit/B101)
     assert 0 < train_ratio + val_ratio <= 1
 
     pos_indices = list(range(size))
@@ -16,7 +14,6 @@ def split_train_val_test_indices(size: int, train_ratio, val_ratio):
     test_size = len(pos_indices) - train_size
     val_size = int(train_size * val_ratio)
     train_size = train_size - val_size
-    # trunk-ignore(bandit/B101)
     assert (train_size + test_size + val_size) == len(pos_indices)
     train_indices, val_indices, test_indices = np.split(
         pos_indices, [train_size + 1, train_size + val_size + 1]
@@ -32,9 +29,7 @@ class SapData(object):
         self.data_dir = data_dir
 
     def train_test_val_split(self, train_ratio, test_ratio, val_ratio, neg_ratio):
-        # trunk-ignore(bandit/B101)
         assert train_ratio + test_ratio == 1
-        # trunk-ignore(bandit/B101)
         assert 0 < val_ratio < 1
 
         def func(x):

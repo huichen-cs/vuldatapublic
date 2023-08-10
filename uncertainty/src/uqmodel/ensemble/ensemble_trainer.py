@@ -2,9 +2,9 @@ import logging
 import numpy as np
 import torch
 from torch.utils import tensorboard
-from uqmodel.ensemble.mlc import MultiLayerClassifier
-from uqmodel.ensemble.loss import StochasticCrossEntropyLoss
-from uqmodel.ensemble.stochastic_mlc import StochasticMultiLayerClassifier
+from .mlc import MultiLayerClassifier
+from .loss import StochasticCrossEntropyLoss
+from .stochastic_mlc import StochasticMultiLayerClassifier
 
 logger = logging.getLogger("EnsembleTrainer")
 

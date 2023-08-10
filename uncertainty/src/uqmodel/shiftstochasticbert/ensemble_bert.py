@@ -3,11 +3,11 @@ import os
 import torch
 import collections
 from typing import Iterator, List, Optional, Sequence, Union
-from uqmodel.shiftstochasticbert.stochastic_bert_mlc import (
+from .stochastic_bert_mlc import (
     StochasticBertBinaryClassifier,
 )
-from uqmodel.shiftstochasticbert.datashift import DataShift
-from uqmodel.shiftstochasticbert.stochastic_metrics import softmax_batch
+from .datashift import DataShift
+from .stochastic_metrics import softmax_batch
 
 
 class StochasticEnsembleBertClassifier(collections.abc.Iterator):

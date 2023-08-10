@@ -46,7 +46,6 @@ class TextClassificationDataset(Dataset):
         input_ids = encoding["input_ids"][0]
         attention_mask = encoding["attention_mask"][0]
         labels = torch.tensor(label)
-        # trunk-ignore(bandit/B101)
         assert len(input_ids) == len(attention_mask) == self.max_len
         return input_ids, attention_mask, labels
 

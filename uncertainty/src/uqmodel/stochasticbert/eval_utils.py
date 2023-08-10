@@ -7,33 +7,34 @@ import os
 import torch
 import torchmetrics
 from packaging import version
+from typing import List
 
 # from typing import Tuple
 # from .calibration_error import binary_calibration_error
-from uqmodel.stochasticbert.logging_utils import init_logging, get_global_logfilename
-from uqmodel.stochasticbert.ensemble_mlc import StochasticEnsembleClassifier
-from uqmodel.stochasticbert.ensemble_trainer import EnsembleTrainer
-from uqmodel.stochasticbert.checkpoint import EnsembleCheckpoint
-from uqmodel.stochasticbert.sampling_metrics import (
+from .logging_utils import init_logging, get_global_logfilename
+from .ensemble_mlc import StochasticEnsembleClassifier
+from .ensemble_trainer import StochasticEnsembleTrainer
+from .checkpoint import EnsembleCheckpoint
+from .sampling_metrics import (
     compute_sampling_entropy,
     compute_sampling_mutual_information,
 )
-from uqmodel.stochasticbert.uq_metrics import (
+from .uq_metrics import (
     compute_binary_acc_vs_conf_from_tensors,
     compute_binary_metrics_vs_conf_from_tensors,
     brier_score_from_tensors,
 )
-from uqmodel.stochasticbert.stochastic_metrics import (
+from .stochastic_metrics import (
     softmax_batch,
     entropy_batch,
     softmax_all,
 )
-from uqmodel.stochasticbert.ensemble_mlc import EnsembleClassifier
-from uqmodel.stochasticbert.dropout_mlc import DropoutClassifier
-from uqmodel.stochasticbert.vanilla_mlc import VanillaClassifier
-from uqmodel.stochasticbert.stochastic_mlc import StochasticMultiLayerClassifier
-from uqmodel.stochasticbert.experiment_new import ExperimentConfig
-from uqmodel.stochasticbert.datashift import (
+from .ensemble_mlc import EnsembleClassifier
+from .dropout_mlc import DropoutClassifier
+from .vanilla_mlc import VanillaClassifier
+from .stochastic_mlc import StochasticMultiLayerClassifier
+from .experiment import ExperimentConfig
+from .datashift import (
     DataShift,
     ShiftedFeatureDataSet,
     PortionShiftedFeatureDataSet,
@@ -140,7 +141,7 @@ def load_from_checkpoint_with_datashift(
             dropouts=config.model.dropout_ratios,
             activation=torch.nn.LeakyReLU(),
         )
-        trainer = EnsembleTrainer(
+        trainer = StochasticEnsembleTrainer(
             ensemble,
             criteria=None,
             lr_scheduler=None,
@@ -153,31 +154,32 @@ def load_from_checkpoint_with_datashift(
             ouput_log_sigma=ouput_log_sigma,
         )
     elif model_type == "predictive":
-        ensemble = EnsembleClassifier(
-            config.model.ensemble_size,
-            len(ps_columns),
-            2,
-            neurons=config.model.num_neurons,
-            dropouts=config.model.dropout_ratios,
-            activation=torch.nn.LeakyReLU(),
-        )
-        trainer = EnsembleTrainer(
-            ensemble,
-            criteria=None,
-            lr_scheduler=None,
-            max_iter=config.trainer.max_iter,
-            init_lr=config.trainer.optimizer.init_lr,
-            device=device,
-            checkpoint=ckpt,
-            earlystopping=None,
-        )
+        raise ValueError('model type {} not supported'.format(model_type))
+        # ensemble = EnsembleClassifier(
+        #     config.model.ensemble_size,
+        #     len(ps_columns),
+        #     2,
+        #     neurons=config.model.num_neurons,
+        #     dropouts=config.model.dropout_ratios,
+        #     activation=torch.nn.LeakyReLU(),
+        # )
+        # trainer = EnsembleTrainer(
+        #     ensemble,
+        #     criteria=None,
+        #     lr_scheduler=None,
+        #     max_iter=config.trainer.max_iter,
+        #     init_lr=config.trainer.optimizer.init_lr,
+        #     device=device,
+        #     checkpoint=ckpt,
+        #     earlystopping=None,
+        # )
     else:
         raise ValueError(
             "model type {} is not in [disentangle, predictive]".format(model_type)
         )
 
     try:
-        ensemble = trainer.load_checkpoint()
+        ensemble, _ = trainer.load_checkpoint()
         logger.info("use the ensemble model from checkpoint, no training")
     except FileNotFoundError as err:
         raise ValueError(
@@ -221,12 +223,12 @@ def curve_tensors_to_list(xyt, keys):
 
 
 def compute_uq_eval_metrics(
-    config,
-    predicted_proba_tensor,
-    predicted_label_tensor,
-    test_label_tensor,
-    py_script=None,
-    metrics_list=None,
+    config:ExperimentConfig,
+    predicted_proba_tensor:torch.Tensor,
+    predicted_label_tensor:torch.Tensor,
+    test_label_tensor:torch.Tensor,
+    py_script:str=None,
+    metrics_list:List=None,
 ):
     acc = torchmetrics.functional.classification.binary_accuracy(
         predicted_label_tensor, test_label_tensor
@@ -333,7 +335,7 @@ def compute_uq_eval_metrics(
         "prc": prc,
         "ece": ece.cpu(),
         "conf_thresholds": conf_thresholds.cpu(),
-        "im_ratio": config.imbalance_ratio,
+        "im_ratio": config.data.imbalance_ratio,
         "sigma": 0,
         "py": py_script,
         "config_fn": config.config_fn,

@@ -13,9 +13,6 @@
     - for portion in [0.1, 0.2, 0.3, 0.4, 0.5]: 
         load model and data
         evaluate (computing uncertainties and F1)
-
-    TODO: data transofrmation (i.e., preprocessing) at present are fit with whole train datset. next 
-    step, we should experiment with the scheme to fit with only the run_dataset
 """
 
 import argparse
@@ -27,6 +24,7 @@ import torch.multiprocessing as mp
 import torch
 from copy import deepcopy
 from datetime import datetime
+from typing import Union
 from uqmodel.stochasticbert.logging_utils import init_logging, get_global_logfilename
 from uqmodel.stochasticbert.data import (
     BertExperimentDatasets,
@@ -50,9 +48,20 @@ from htsc_bert_sapdata_active_learn_test import get_trained_ensemble_model
 logger = logging.getLogger(__name__)
 
 
-def get_experiment_config(parser=None):
-    return ExperimentConfig()
-
+def get_experiment_config(
+    parser: Union[argparse.ArgumentParser, None] = None,
+) -> ExperimentConfig:
+    if not parser:
+        parser = init_argparse()
+    args = parser.parse_args()
+    if args.config:
+        if not os.path.exists(args.config):
+            raise ValueError(f"config file {args.config} inaccessible")
+        config = ExperimentConfig(args.config)
+    else:
+        config = ExperimentConfig()
+    logger.info(f"Experiment config: {config}")
+    return config
 
 def get_extended_argparser() -> argparse.ArgumentParser:
     parser = init_argparse()
@@ -85,8 +94,6 @@ def get_extended_args(
     args = parser.parse_args()
     if args.action:
         config.action = args.action
-    else:
-        config.action = "all"
     return config
 
 
@@ -94,27 +101,27 @@ def setup_experiment() -> ExperimentConfig:
     parser = get_extended_argparser()
     config = get_experiment_config(parser)
 
-    if not os.path.exists(config.data_dir):
-        raise ValueError(f"data_dir {config.data_dir} inaccessible")
+    if not os.path.exists(config.data.data_dir):
+        raise ValueError(f"data_dir {config.data.data_dir} inaccessible")
 
     if config.reproduce:
         setup_reproduce(config)
 
-    if config.trainer_cpu_only:
+    if config.trainer.cpu_only:
         device = torch.device("cpu")
     else:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     config.device = device
 
-    if os.cpu_count() < config.trainer_max_dataloader_workers:
+    if os.cpu_count() < config.trainer.max_dataloader_workers:
         num_workers = os.cpu_count()
     else:
-        num_workers = config.trainer_max_dataloader_workers
-    config.num_workers = num_workers
-
-    config.trainer_use_model = "use_checkpoint"
+        num_workers = config.trainer.max_dataloader_workers
+    config.trainer.num_dataloader_workers = num_workers
 
     config = get_extended_args(config, parser)
+
+    config.trainer.use_model = 'use_checkpoint'
     return config
 
 
@@ -124,13 +131,15 @@ def get_datetime_jobid():
 
 
 def compute_eval_metrics(
-    ensemble: StochasticEnsembleBertClassifier, test_dataloader, config
+    ensemble: StochasticEnsembleBertClassifier,
+    test_dataloader: torch.utils.data.DataLoader,
+    config:ExperimentConfig
 ):
     test_proba_pred_mean = list(
         [
             p.cpu()
             for p in ensemble.predict_mean_proba(
-                test_dataloader, config.trainer_aleatoric_samples, device=config.device
+                test_dataloader, config.trainer.aleatoric_samples, device=config.device
             )
         ]
     )
@@ -157,7 +166,7 @@ def compute_eval_metrics(
     uq = EnsembleDisentangledUq(
         ensemble,
         test_dataloader,
-        config.trainer_aleatoric_samples,
+        config.trainer.aleatoric_samples,
         device=config.device,
         mp=True,
     )
@@ -344,7 +353,7 @@ def debug_cuda_memory():
 
 def run_eval_experiment(config: ExperimentConfig) -> dict:
     print_allocation("ener run_eval_experiment", print)
-    assert config.trainer_use_model == "use_checkpoint"
+    assert config.trainer.use_model == "use_checkpoint"
 
     result_dict = dict()
     for method in [

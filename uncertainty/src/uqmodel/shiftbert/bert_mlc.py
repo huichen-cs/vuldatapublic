@@ -7,7 +7,7 @@ from transformers import AutoModel
 
 from typing import Any, List, Sequence, Union, Dict
 
-from uqmodel.shiftbert.datashift import DataShift
+from .datashift import DataShift
 
 
 logger = logging.getLogger(__name__)
@@ -48,7 +48,6 @@ class MultiLayerClassifierHead(torch.nn.Module):
         """
         super().__init__()
         self.noiser = noiser
-        # trunk-ignore(bandit/B101)
         assert len(neurons) == len(dropouts)
 
         layers: List[torch.nn.Module] = []

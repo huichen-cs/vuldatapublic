@@ -1,5 +1,5 @@
 import torch
-from uqmodel.shiftbert.bert_mlc import BertBinaryClassifier
+from .bert_mlc import BertBinaryClassifier
 
 
 class DropoutBertClassifier(object):

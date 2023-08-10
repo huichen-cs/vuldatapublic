@@ -2,7 +2,7 @@ from __future__ import annotations
 import os
 import torch
 from typing import Iterator, List, Optional, Sequence, Union
-from uqmodel.bert.bert_mlc import BertBinaryClassifier
+from .bert_mlc import BertBinaryClassifier
 
 
 class EnsembleBertClassifier(Iterator):
