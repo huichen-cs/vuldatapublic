@@ -160,8 +160,9 @@ def compute_data_pool_uq_metrics(
 
 
 def run_experiment(config: ExperimentConfig) -> dict:
+    n_data_parts = 5
     experiment_datasets = PsFeatureExperimentDatasets(config, None)
-    selection_size = int(len(experiment_datasets.pool_dataset) / 2 / 5)
+    selection_size = int(len(experiment_datasets.pool_dataset) / 2 / n_data_parts)
     experiment_dataloaders = PsFeatureExperimentDataLoaders(config, experiment_datasets)
 
     if config.action in ["all", "init"]:
@@ -206,7 +207,7 @@ def run_experiment(config: ExperimentConfig) -> dict:
             )
             # print('begin {} with len(run_dataset): {}, len(pool_dataset): {}'
             #       .format(method, len(run_datasets.run_dataset), len(run_datasets.pool_dataset)))
-            for i in range(5):
+            for i in range(n_data_parts):
                 logger.info("run {} method for step {}".format(method, i))
                 run_datasets.update(
                     selection_size,
@@ -245,9 +246,10 @@ def run_experiment(config: ExperimentConfig) -> dict:
                 ensemble = get_trained_ensemble_model(
                     config, run_datasets, run_dataloaders
                 )
-                (entropy_epistermic, entropy_aleatoric) = compute_data_pool_uq_metrics(
-                    config, ensemble, run_dataloaders
-                )
+                if i < n_data_parts - 1:
+                    (entropy_epistermic, entropy_aleatoric) = compute_data_pool_uq_metrics(
+                        config, ensemble, run_dataloaders
+                    )
                 logger.info(
                     "done {} at {} with len(run_dataset): {}, len(pool_dataset): {}".format(
                         method,

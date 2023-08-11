@@ -2,6 +2,7 @@ import logging
 import numpy as np
 import torch
 from torch.utils import tensorboard
+from tqdm import tqdm
 from uqmodel.stochasticensemble.stochastic_mlc import StochasticMultiLayerClassifier
 from uqmodel.stochasticensemble.mlc import MultiLayerClassifier
 from uqmodel.stochasticensemble.loss import StochasticCrossEntropyLoss
@@ -154,7 +155,7 @@ class EnsembleTrainer(object):
         else:
             self.summary_writer = None
 
-        for epoch in range(self.begin_epoch, self.max_iter):
+        for epoch in tqdm(range(self.begin_epoch, self.max_iter)):
             # train phase -- train an ensemble of models
             batch_train_loss = torch.zeros(n_train_batches, self.model_size).to(
                 self.device, non_blocking=pin_memory

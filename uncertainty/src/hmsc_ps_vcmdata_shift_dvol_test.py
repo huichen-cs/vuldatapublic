@@ -3,7 +3,7 @@ import os
 import sys
 import torch
 
-from logging_utils import init_logging
+from uqmodel.ensemble.logging_utils import init_logging
 from uqmodel.ensemble.focalloss_clcarwin import FocalLoss
 from uqmodel.ensemble.focalloss_utils import compute_focalloss_alpha
 from uqmodel.ensemble.eval_utils import (

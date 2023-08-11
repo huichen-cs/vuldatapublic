@@ -4,7 +4,8 @@ import os
 
 
 def init_logging(logger, logfile, append=True):
-    if os.path.exists("logger.ini"):
+    conf_file = os.path.join('logconf', 'logger.ini')
+    if os.path.exists(conf_file):
         logfilename = os.path.splitext(os.path.basename(logfile))[0] + ".log"
         if not append and os.path.exists(logfilename):
             logfilename = (
@@ -13,7 +14,7 @@ def init_logging(logger, logfile, append=True):
                 + str(os.getpid())
                 + ".log"
             )
-        logging.config.fileConfig("logger.ini", defaults={"logfilename": logfilename})
+        logging.config.fileConfig(conf_file, defaults={"logfilename": logfilename})
     else:
         logging.basicConfig(level=logging.INFO)
 

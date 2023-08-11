@@ -352,6 +352,7 @@ def debug_cuda_memory():
 
 
 def run_eval_experiment(config: ExperimentConfig) -> dict:
+    n_data_parts = 5
     print_allocation("ener run_eval_experiment", print)
     assert config.trainer.use_model == "use_checkpoint"
 
@@ -398,7 +399,7 @@ def run_eval_experiment(config: ExperimentConfig) -> dict:
                     len(run_datasets.pool_dataset),
                 )
             )
-            for i in range(5):
+            for i in range(n_data_parts):
                 logger.info("run {} method for step {}".format(method, i))
                 run_datasets.update_checkpoint("{}_{}".format(i, method))
                 eval_metrics = run_one_evaluation(config, run_datasets)

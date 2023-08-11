@@ -9,7 +9,7 @@ import sklearn.preprocessing
 import torch
 from abc import ABC, abstractmethod
 from typing import Union, Tuple
-from .data_utils import (
+from .repodata_utils import (
     get_dataset_cve_list,
     get_patchscout_feature_list,
     get_repo_list,

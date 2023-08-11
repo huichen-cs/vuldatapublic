@@ -18,6 +18,7 @@ TODO: data transofrmation (i.e., preprocessing) at present are fit with whole tr
     step, we should experiment with the scheme to fit with only the run_dataset
 """
 
+import argparse
 import logging
 import numpy as np
 import os
@@ -36,6 +37,7 @@ from uqmodel.stochasticensemble.stochastic_mlc import StochasticMultiLayerClassi
 from uqmodel.stochasticensemble.ensemble_trainer import EnsembleTrainer
 from uqmodel.stochasticensemble.experiment_config import (
     get_experiment_config,
+    init_argparse,
     setup_reproduce,
 )
 
@@ -43,8 +45,41 @@ from uqmodel.stochasticensemble.experiment_config import (
 logger = logging.getLogger(__name__)
 
 
+def get_extended_argparser() -> argparse.ArgumentParser:
+    parser = init_argparse()
+    parser.add_argument(
+        "-a",
+        "--action",
+        help="active learning action in {}".format(
+            [
+                "all",
+                "init",
+                "ehal",
+                "elah",
+                "ehah",
+                "elal",
+                "aleh",
+                "ahel",
+                "aheh",
+                "alel",
+            ]
+        ),
+    )
+    return parser
+
+def get_extended_args(
+    config: ExperimentConfig, parser: argparse.ArgumentParser = None
+) -> ExperimentConfig:
+    if not parser:
+        parser = init_argparse()
+    args = parser.parse_args()
+    if args.action:
+        config.action = args.action
+    return config
+
 def setup_experiment() -> ExperimentConfig:
-    config = get_experiment_config()
+    parser = get_extended_argparser()
+    config = get_experiment_config(parser)
 
     if not os.path.exists(config.data.data_dir):
         raise ValueError(f"data_dir {config.data.data_dir} inaccessible")
@@ -64,6 +99,10 @@ def setup_experiment() -> ExperimentConfig:
         num_workers = config.trainer.max_dataloader_workers
     config.num_workers = num_workers
     config.output_log_sigma = False
+
+    config = get_extended_args(config, parser)
+
+    config.trainer.use_model = 'use_checkpoint'
 
     return config
 
@@ -327,18 +366,19 @@ def run_experiment(config: ExperimentConfig) -> dict:
     )
 
     for method in ["ehal", "elah", "ehah", "elal", "aleh", "ahel", "aheh", "alel"]:
-        result_list = []
-        for i in range(5):
-            logger.info("run {} method for step {}".format(method, i))
-            ensemble = load_ensemble_from_checkpoint(
-                config, ps_columns, tag="{}_{}".format(i, method)
-            )
+        if method == config.action or config.action == "all":
+            result_list = []
+            for i in range(5):
+                logger.info("run {} method for step {}".format(method, i))
+                ensemble = load_ensemble_from_checkpoint(
+                    config, ps_columns, tag="{}_{}".format(i, method)
+                )
 
-            result_list.append(
-                compute_eval_metrics(ensemble, test_dataloader, device=config.device)
-            )
-            logger.info("done {} at {}".format(method, i))
-        result_dict[method] = result_list
+                result_list.append(
+                    compute_eval_metrics(ensemble, test_dataloader, device=config.device)
+                )
+                logger.info("done {} at {}".format(method, i))
+            result_dict[method] = result_list
 
     return result_dict
 
