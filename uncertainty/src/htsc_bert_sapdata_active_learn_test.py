@@ -147,7 +147,7 @@ def get_trained_model(
         tensorboard_log=(
             config.trainer.tensorboard_logdir,
             "train/{}".format(get_datetime_jobid()),
-        )
+        ),
     )
 
     if config.trainer.use_model == "use_checkpoint":
@@ -215,7 +215,7 @@ def compute_data_pool_uq_metrics(
 
 def run_experiment(config: ExperimentConfig) -> dict:
     n_data_parts = 5
-    experiment_datasets = BertExperimentDatasets(config, None, dataset_name = 'SAPDATA')
+    experiment_datasets = BertExperimentDatasets(config, None, dataset_name="SAPDATA")
     selection_size = int(len(experiment_datasets.pool_dataset) / 2 / n_data_parts)
 
     logger.info("action to take: {}".format(config.action))
@@ -235,15 +235,25 @@ def run_experiment(config: ExperimentConfig) -> dict:
         ensemble = get_trained_ensemble_model(
             config, experiment_datasets, load_trained=True
         )
-    logger.info('got initial ensemble model')
+    logger.info("got initial ensemble model")
 
-    if config.action in ["ehal", "elah", "ehah", "elal", "aleh", "ahel", "aheh", "alel", "all"]:
+    if config.action in [
+        "ehal",
+        "elah",
+        "ehah",
+        "elal",
+        "aleh",
+        "ahel",
+        "aheh",
+        "alel",
+        "all",
+    ]:
         # print('3-----------------------------------------------')
         experiment_dataloaders = BertExperimentDataLoaders(config, experiment_datasets)
         (entropy_epistermic, entropy_aleatoric) = compute_data_pool_uq_metrics(
             config, ensemble, experiment_dataloaders
         )
-        logger.info('estimated UQ metrics for initial model')
+        logger.info("estimated UQ metrics for initial model")
 
     for method in ["ehal", "elah", "ehah", "elal", "aleh", "ahel", "aheh", "alel"]:
         if method == config.action or config.action == "all":
@@ -275,9 +285,10 @@ def run_experiment(config: ExperimentConfig) -> dict:
                 run_dataloaders = BertExperimentDataLoaders(config, run_datasets)
                 ensemble = get_trained_ensemble_model(config, run_datasets)
                 if i < n_data_parts - 1:
-                    (entropy_epistermic, entropy_aleatoric) = compute_data_pool_uq_metrics(
-                        config, ensemble, run_dataloaders
-                    )
+                    (
+                        entropy_epistermic,
+                        entropy_aleatoric,
+                    ) = compute_data_pool_uq_metrics(config, ensemble, run_dataloaders)
                 logger.info(
                     "done {} at {} with len(run_dataset): {}, len(pool_dataset): {}".format(
                         method,

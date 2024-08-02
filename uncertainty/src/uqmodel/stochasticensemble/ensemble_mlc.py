@@ -10,6 +10,7 @@ from typing import Sequence
 from .dataloader_utils import get_test_label
 from .stochastic_metrics import softmax_batch
 from .mlc import MultiLayerClassifier
+from .stochastic_mlc import StochasticMultiLayerClassifier
 
 
 logger = logging.getLogger(__name__)
@@ -48,8 +49,19 @@ class StochasticEnsembleClassifier(object):
     def __getitem__(self, idx: int):
         return self.model_ensemble[idx]
 
+    def __setitem__(self, idx: int, model: StochasticMultiLayerClassifier):
+        self.model_ensemble[idx] = model
+
     def __len__(self):
         return len(self.model_ensemble)
+
+    def train(self):
+        for model in self.model_ensemble:
+            model.train()
+
+    def eval(self):
+        for model in self.model_ensemble:
+            model.eval()
 
     # def select_model(self, test_dataloader, selection_critieria='best_f1', device=None):
     #     scores = np.zeros(self.__len__())

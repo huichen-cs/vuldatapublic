@@ -144,6 +144,9 @@ class StochasticMultiLayerClassifier(torch.nn.Module):
     #     confidence, label = torch.max(p, dim=0)
     #     return confidence, label
 
+    def __call__(self, x):
+        return self.forward(x)
+
     def _add_activiation_layer(
         self,
         shared_layer_dict: collections.OrderedDict,

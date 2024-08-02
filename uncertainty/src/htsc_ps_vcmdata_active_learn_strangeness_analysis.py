@@ -67,6 +67,7 @@ def get_extended_argparser() -> argparse.ArgumentParser:
     )
     return parser
 
+
 def get_extended_args(
     config: ExperimentConfig, parser: argparse.ArgumentParser = None
 ) -> ExperimentConfig:
@@ -76,6 +77,7 @@ def get_extended_args(
     if args.action:
         config.action = args.action
     return config
+
 
 def setup_experiment() -> ExperimentConfig:
     parser = get_extended_argparser()
@@ -102,7 +104,7 @@ def setup_experiment() -> ExperimentConfig:
 
     config = get_extended_args(config, parser)
 
-    config.trainer.use_model = 'use_checkpoint'
+    config.trainer.use_model = "use_checkpoint"
 
     return config
 
@@ -182,9 +184,9 @@ def load_from_checkpoint(config: ExperimentConfig, tag=None):
     return test_dataloader, ps_columns, ensemble
 
 
-def load_ensemble_from_checkpoint(config: ExperimentConfig,
-                                  ps_columns: list,
-                                  tag=None) -> StochasticEnsembleClassifier:
+def load_ensemble_from_checkpoint(
+    config: ExperimentConfig, ps_columns: list, tag=None
+) -> StochasticEnsembleClassifier:
     ckpt = EnsembleCheckpoint(
         config.model.ensemble_size,
         config.trainer.checkpoint.dir_path,
@@ -229,9 +231,11 @@ def load_ensemble_from_checkpoint(config: ExperimentConfig,
     return ensemble
 
 
-def compute_eval_metrics(ensemble:StochasticEnsembleClassifier,
-                         test_dataloader:torch.utils.data.DataLoader,
-                         device:torch.device=None):
+def compute_eval_metrics(
+    ensemble: StochasticEnsembleClassifier,
+    test_dataloader: torch.utils.data.DataLoader,
+    device: torch.device = None,
+):
     test_proba_pred_mean = list(
         ensemble.predict_mean_proba(
             test_dataloader, config.trainer.aleatoric_samples, device=device
@@ -358,7 +362,7 @@ def result_to_json(result_dict):
 def compute_data_pool_uq_metrics(
     config: ExperimentConfig,
     ensemble: StochasticEnsembleClassifier,
-    dataloader: torch.utils.data.DataLoader
+    dataloader: torch.utils.data.DataLoader,
 ):
     uq = EnsembleDisentangledUq(
         ensemble,
@@ -383,7 +387,12 @@ def compute_data_pool_uq_metrics(
     return (entropy_epistermic, entropy_aleatoric)
 
 
-def run_experiment(config: ExperimentConfig, model_method: str, model_index: int, rtn_data: bool=False) -> dict:
+def run_experiment(
+    config: ExperimentConfig,
+    model_method: str,
+    model_index: int,
+    rtn_data: bool = False,
+) -> dict:
     result_dict = dict()
     for method in [
         "init",
@@ -400,23 +409,25 @@ def run_experiment(config: ExperimentConfig, model_method: str, model_index: int
 
     test_dataloader, ps_columns, ensemble = load_from_checkpoint(config, tag=None)
     (entropy_epistermic, entropy_aleatoric) = compute_data_pool_uq_metrics(
-                        config, ensemble, test_dataloader)
+        config, ensemble, test_dataloader
+    )
 
     for method in ["ehal", "elah", "ehah", "elal", "aleh", "ahel", "aheh", "alel"]:
-        if method == config.action or config.action == 'all':
+        if method == config.action or config.action == "all":
             logger.info("run {} method for step {}".format(method, model_index))
-            try: 
+            try:
                 ensemble = load_ensemble_from_checkpoint(
                     config, ps_columns, tag="{}_{}".format(model_index, method)
                 )
                 (entropy_epistermic, entropy_aleatoric) = compute_data_pool_uq_metrics(
-                                    config, ensemble, test_dataloader)
+                    config, ensemble, test_dataloader
+                )
                 result_dict[method] = dict()
-                result_dict[method]['entropy_epistermic'] = entropy_epistermic
-                result_dict[method]['entropy_aleatoric'] = entropy_aleatoric
+                result_dict[method]["entropy_epistermic"] = entropy_epistermic
+                result_dict[method]["entropy_aleatoric"] = entropy_aleatoric
                 logger.info("done {} at {}".format(method, model_index))
             except ValueError as err:
-                logger.info('skip {} at {} due to {}'.format(method, model_index, err))
+                logger.info("skip {} at {} due to {}".format(method, model_index, err))
     if not rtn_data:
         return result_dict
     else:
@@ -428,6 +439,6 @@ if __name__ == "__main__":
 
     config = setup_experiment()
 
-    result_dict= run_experiment(config, 'all', 4)
+    result_dict = run_experiment(config, "all", 4)
     json = result_to_json(result_dict)
     print(json)

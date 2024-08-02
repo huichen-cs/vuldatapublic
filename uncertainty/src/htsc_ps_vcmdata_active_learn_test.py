@@ -247,9 +247,10 @@ def run_experiment(config: ExperimentConfig) -> dict:
                     config, run_datasets, run_dataloaders
                 )
                 if i < n_data_parts - 1:
-                    (entropy_epistermic, entropy_aleatoric) = compute_data_pool_uq_metrics(
-                        config, ensemble, run_dataloaders
-                    )
+                    (
+                        entropy_epistermic,
+                        entropy_aleatoric,
+                    ) = compute_data_pool_uq_metrics(config, ensemble, run_dataloaders)
                 logger.info(
                     "done {} at {} with len(run_dataset): {}, len(pool_dataset): {}".format(
                         method,

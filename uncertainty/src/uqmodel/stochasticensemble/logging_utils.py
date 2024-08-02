@@ -4,7 +4,7 @@ import os
 
 
 def init_logging(logger, logfile, append=True):
-    conf_file = os.path.join('logconf', 'logger.ini')
+    conf_file = os.path.join("logconf", "logger.ini")
     if os.path.exists(conf_file):
         logfilename = os.path.splitext(os.path.basename(logfile))[0] + ".log"
         if not append and os.path.exists(logfilename):

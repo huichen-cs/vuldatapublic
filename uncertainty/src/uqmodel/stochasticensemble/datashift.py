@@ -3,7 +3,7 @@ import torch
 import pandas as pd
 from abc import ABC, abstractmethod
 from typing import Tuple
-from uqmodel.stochasticensemble.ps_data import FeatureDataSet
+from .ps_data import FeatureDataSet
 
 
 class DataShift(ABC):

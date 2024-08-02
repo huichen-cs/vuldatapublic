@@ -8,7 +8,7 @@ import random
 from configparser import ConfigParser, ExtendedInterpolation
 
 
-logger = logging.getLogger("experiment_config")
+logger = logging.getLogger(__name__)
 
 
 def setup_reproduce(config):

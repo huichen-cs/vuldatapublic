@@ -9,14 +9,15 @@ import sklearn.preprocessing
 import torch
 from abc import ABC, abstractmethod
 from typing import Union, Tuple
-from uqmodel.stochasticensemble.data_utils import (
+from .data_utils import (
     get_dataset_cve_list,
     get_patchscout_feature_list,
     get_repo_list,
     load_dataset_feature_data,
 )
 
-logger = logging.getLogger("ps_data")
+
+logger = logging.getLogger(__name__)
 
 
 class DataTransform(ABC):

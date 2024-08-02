@@ -1,5 +1,19 @@
 #!/bin/bash
 
+###
+# to run all pairs as follows:
+###
+# PYTHONPATH=uncertainty/src \
+#   python uncertainty/src/htsc_ps_vcmdata_active_learn_test.py \
+#     -c uncertainty/config/htscpsvcm/active/en_psvcm_1.0_im_1_gamma_0.5_train_0.9_sigma_0.ini -a init
+# PYTHONPATH=uncertainty/src \
+#   python uncertainty/src/htsc_ps_vcmdata_active_learn_test.py \
+#     -c uncertainty/config/htscpsvcm/active/en_psvcm_1.0_im_1_gamma_0.5_train_0.9_sigma_0.ini -a ehal
+# PYTHONPATH=uncertainty/src \
+#   python uncertainty/src/htsc_ps_vcmdata_active_learn_test.py \
+#     -c uncertainty/config/htscpsvcm/active/en_psvcm_1.0_im_1_gamma_0.5_train_0.9_sigma_0.ini -a elah
+###
+
 if [[ $# -eq 0 ]]; then 
 	echo "Usage: $0 action"
 	exit 0
@@ -18,17 +32,17 @@ function do_action() {
 	action=$1
 	echo -n "PYTHONPATH=$PYTHONPATH "
 	echo -n "python uncertainty/src/htsc_ps_vcmdata_active_learn_test.py "
-	echo    "  -c  uncertainty/config/active/v3/en_vcm_1.0_im_1_train_0.9_sigma_0.0_sft_1.0.ini -a ${action}"
+	echo    "  -c  uncertainty/config/htscpsvcm/active/en_psvcm_1.0_im_1_gamma_0.5_train_0.9_sigma_0.ini -a ${action}"
 	PYTHONPATH=$PYTHONPATH python uncertainty/src/htsc_ps_vcmdata_active_learn_test.py \
-		-c  uncertainty/config/active/v3/en_vcm_1.0_im_1_train_0.9_sigma_0.0_sft_1.0.ini -a "${action}"
+		-c  uncertainty/config/htscpsvcm/active/en_psvcm_1.0_im_1_gamma_0.5_train_0.9_sigma_0.ini -a "${action}"
 }
 
 function do_eval() {
 	echo -n "PYTHONPATH=$PYTHONPATH "
 	echo -n "python uncertainty/src/htsc_ps_vcmdata_active_learn_eval.py "
-	echo    "  -c  uncertainty/config/active/v3/en_vcm_1.0_im_1_train_0.9_sigma_0.0_sft_1.0.ini"
+	echo    "  -c  uncertainty/config/htscpsvcm/active/en_psvcm_1.0_im_1_gamma_0.5_train_0.9_sigma_0.ini"
 	PYTHONPATH=$PYTHONPATH python uncertainty/src/htsc_ps_vcmdata_active_learn_eval.py \
-		-c  uncertainty/config/active/v3/en_vcm_1.0_im_1_train_0.9_sigma_0.0_sft_1.0.ini
+		-c  uncertainty/config/htscpsvcm/active/en_psvcm_1.0_im_1_gamma_0.5_train_0.9_sigma_0.ini
 }
 
 function do_action_with_check() {

@@ -290,7 +290,6 @@ def get_dataloader_shape(dataloader):
     return (total_len, X.shape[-1], len(y.shape))
 
 
-
 def split_train_val_test_indices(size: int, train_ratio, val_ratio):
     assert size > 0
     assert 0 < train_ratio + val_ratio <= 1

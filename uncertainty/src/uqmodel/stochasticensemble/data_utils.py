@@ -5,7 +5,7 @@ import os
 import pandas as pd
 
 
-logger = logging.getLogger("data_utils")
+logger = logging.getLogger(__name__)
 
 
 def load_repo_commits(commit_file: str) -> dict:

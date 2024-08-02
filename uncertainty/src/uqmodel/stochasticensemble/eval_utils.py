@@ -9,36 +9,36 @@ from typing import Tuple
 
 # from typing import Tuple
 # from .calibration_error import binary_calibration_error
-from uqmodel.stochasticensemble.ensemble_mlc import StochasticEnsembleClassifier
-from uqmodel.stochasticensemble.ensemble_trainer import EnsembleTrainer
-from uqmodel.stochasticensemble.train_utils import EnsembleCheckpoint
-from uqmodel.stochasticensemble.sampling_metrics import (
+from .ensemble_mlc import StochasticEnsembleClassifier
+from .ensemble_trainer import EnsembleTrainer
+from .checkpoint import EnsembleCheckpoint
+from .sampling_metrics import (
     compute_sampling_entropy,
     compute_sampling_mutual_information,
 )
-from uqmodel.stochasticensemble.uq_metrics import (
+from .uq_metrics import (
     compute_binary_acc_vs_conf_from_tensors,
     compute_binary_metrics_vs_conf_from_tensors,
     brier_score_from_tensors,
 )
-from uqmodel.stochasticensemble.stochastic_metrics import (
+from .stochastic_metrics import (
     softmax_batch,
     entropy_batch,
     softmax_all,
 )
-from uqmodel.stochasticensemble.ensemble_mlc import EnsembleClassifier
-from uqmodel.stochasticensemble.dropout_mlc import DropoutClassifier
-from uqmodel.stochasticensemble.vanilla_mlc import VanillaClassifier
-from uqmodel.stochasticensemble.stochastic_mlc import StochasticMultiLayerClassifier
-from uqmodel.stochasticensemble.experiment_config import ExperimentConfig
-from uqmodel.stochasticensemble.datashift import (
+from .ensemble_mlc import EnsembleClassifier
+from .dropout_mlc import DropoutClassifier
+from .vanilla_mlc import VanillaClassifier
+from .stochastic_mlc import StochasticMultiLayerClassifier
+from .experiment_config import ExperimentConfig
+from .datashift import (
     DataShift,
     ShiftedFeatureDataSet,
     PortionShiftedFeatureDataSet,
 )
 
 
-logger = logging.getLogger("eval_utils")
+logger = logging.getLogger(__name__)
 
 
 def get_one_hot_label(labels, num_classes=None, device=None):

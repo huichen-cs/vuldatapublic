@@ -63,6 +63,7 @@ def get_experiment_config(
     logger.info(f"Experiment config: {config}")
     return config
 
+
 def get_extended_argparser() -> argparse.ArgumentParser:
     parser = init_argparse()
     parser.add_argument(
@@ -121,7 +122,7 @@ def setup_experiment() -> ExperimentConfig:
 
     config = get_extended_args(config, parser)
 
-    config.trainer.use_model = 'use_checkpoint'
+    config.trainer.use_model = "use_checkpoint"
     return config
 
 
@@ -133,7 +134,7 @@ def get_datetime_jobid():
 def compute_eval_metrics(
     ensemble: StochasticEnsembleBertClassifier,
     test_dataloader: torch.utils.data.DataLoader,
-    config:ExperimentConfig
+    config: ExperimentConfig,
 ):
     test_proba_pred_mean = list(
         [
@@ -370,7 +371,7 @@ def run_eval_experiment(config: ExperimentConfig) -> dict:
     ]:
         result_dict[method] = []
 
-    experiment_datasets = BertExperimentDatasets(config, None)
+    experiment_datasets = BertExperimentDatasets(config, None, dataset_name="SAPDATA")
     eval_metrics = run_one_evaluation(config, experiment_datasets)
     debug_cuda_memory()
     # experiment_dataloaders = BertExperimentDataLoaders(config, experiment_datasets, train=False)

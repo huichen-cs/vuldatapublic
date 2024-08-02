@@ -1,3 +1,4 @@
+from __future__ import annotations
 import logging
 
 logger = logging.getLogger(__name__)
@@ -12,6 +13,12 @@ class EarlyStopping(object):
         self.counter = 0
         self.early_stop = False
         self.min_loss = min_loss
+
+    def reset(self) -> EarlyStopping:
+        self.min_loss = self.init_min_loss
+        self.counter = 0
+        self.early_stop = False
+        return self
 
     def __call__(self, loss):
         logger.debug(

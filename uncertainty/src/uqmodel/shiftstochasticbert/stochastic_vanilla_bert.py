@@ -37,4 +37,3 @@ class StochasticVanillaBertClassifier(object):
                 input_ids, attention_mask
             )
         return proba_pred, confidence_pred, labels_pred
-

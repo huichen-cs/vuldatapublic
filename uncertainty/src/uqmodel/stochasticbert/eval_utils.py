@@ -154,7 +154,7 @@ def load_from_checkpoint_with_datashift(
             ouput_log_sigma=ouput_log_sigma,
         )
     elif model_type == "predictive":
-        raise ValueError('model type {} not supported'.format(model_type))
+        raise ValueError("model type {} not supported".format(model_type))
         # ensemble = EnsembleClassifier(
         #     config.model.ensemble_size,
         #     len(ps_columns),
@@ -223,12 +223,12 @@ def curve_tensors_to_list(xyt, keys):
 
 
 def compute_uq_eval_metrics(
-    config:ExperimentConfig,
-    predicted_proba_tensor:torch.Tensor,
-    predicted_label_tensor:torch.Tensor,
-    test_label_tensor:torch.Tensor,
-    py_script:str=None,
-    metrics_list:List=None,
+    config: ExperimentConfig,
+    predicted_proba_tensor: torch.Tensor,
+    predicted_label_tensor: torch.Tensor,
+    test_label_tensor: torch.Tensor,
+    py_script: str = None,
+    metrics_list: List = None,
 ):
     acc = torchmetrics.functional.classification.binary_accuracy(
         predicted_label_tensor, test_label_tensor

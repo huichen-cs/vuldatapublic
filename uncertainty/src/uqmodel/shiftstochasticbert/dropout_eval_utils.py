@@ -20,6 +20,7 @@ from .uq_metrics import (
 
 logger = logging.getLogger(__name__)
 
+
 class DropoutDisentangledUq(object):
     def __init__(
         self,
@@ -373,8 +374,6 @@ class StochasticDropoutBertClassifierEvalautor(object):
         logger.info("result_dict = {}".format(self.result_dict_to_json(result_dict)))
         return result_dict
 
-
-
     def compute_eval_metrics(self, config: ExperimentConfig):
         self.model = self.model.to(config.device)
         probas_pred, confs_pred, labels_pred, targets = self._predict(
@@ -389,7 +388,7 @@ class StochasticDropoutBertClassifierEvalautor(object):
         )
 
         uq_list = []
-        if hasattr(config, 'n_stochastic_passes'):
+        if hasattr(config, "n_stochastic_passes"):
             n_stochastic_passes = config.n_stochastic_passes
         else:
             n_stochastic_passes = 100

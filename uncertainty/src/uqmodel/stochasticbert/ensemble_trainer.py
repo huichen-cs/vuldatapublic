@@ -1,36 +1,39 @@
 import logging
+from typing import List, Tuple, Union
+
 import numpy as np
 import torch
 import torch.multiprocessing as mp
 from torch.utils import tensorboard
 from tqdm import tqdm
-from typing import List, Tuple, Union
 
-from .loss import StochasticCrossEntropyLoss
-from .stochastic_bert_mlc import (
-    StochasticBertBinaryClassifier,
-)
 from .data import BertExperimentDatasets
 from .early_stopping import EarlyStopping
-from .experiment import ExperimentConfig
 from .ensemble_bert import StochasticEnsembleBertClassifier
-from .logging_utils import (
-    init_logging,
-    get_global_logfilename,
-)
+from .experiment import ExperimentConfig
+from .logging_utils import get_global_logfilename, init_logging
+from .loss import StochasticCrossEntropyLoss
+from .stochastic_bert_mlc import StochasticBertBinaryClassifier
 
 logger = logging.getLogger(__name__)
 
 
-def get_dataset_size(dataset: torch.utils.data.Dataset) -> int:
+def get_dataset_size(
+    dataset: Union[
+        torch.utils.data.Dataset,
+        torch.utils.data.Subset,
+        torch.utils.data.ConcatDataset,
+    ]
+) -> int:
     if isinstance(dataset, torch.utils.data.TensorDataset):
         return len(dataset)
-    else:
-        raise ValueError(
-            "expected torch.utils.data.TensorDataset, but encountered {}".format(
-                type(dataset)
-            )
-        )
+    if isinstance(dataset, torch.utils.data.Subset):
+        return len(dataset)
+    if isinstance(dataset, torch.utils.data.ConcatDataset):
+        return len(dataset)
+    raise ValueError(
+        f"expected torch.utils.data.TensorDataset, but encountered {type(dataset)}"
+    )
 
 
 def get_train_criteria(
@@ -44,7 +47,7 @@ def get_train_criteria(
         )
     else:
         raise ValueError(
-            "unsupported loss function {}".format(trainer_config.criteria.loss_function)
+            f"unsupported loss function {trainer_config.criteria.loss_function}"
         )
     return criteria
 
@@ -60,7 +63,7 @@ def get_train_optimizer(
         optimizer = torch.optim.Adam(model.parameters(), lr=optimizer_config.init_lr)
     else:
         raise ValueError(
-            "unsupported loss function {}".format(optimizer_config.optimizer)
+            f"unsupported loss function {optimizer_config.optimizer}"
         )
     return optimizer
 
@@ -77,12 +80,12 @@ def get_train_lr_scheduler(
         )
     else:
         raise ValueError(
-            "unsupported lr_scheduler {}".format(lr_scheduler_config.scheduler)
+            f"unsupported lr_scheduler {lr_scheduler_config.scheduler}"
         )
     return lr_scheduler
 
 
-class StochasticBertTrainer(object):
+class StochasticBertTrainer:
     summary_writer: Union[tensorboard.SummaryWriter, None]
 
     def __init__(
@@ -154,17 +157,17 @@ class StochasticBertTrainer(object):
             self.summary_writer = tensorboard.SummaryWriter(self.tensorboard_logdir)
 
         self.summary_writer.add_scalars(
-            "uq/{}/loss".format(self.tensorboard_logtag),
+            f"uq/{self.tensorboard_logtag}/loss",
             {"train_loss": train_loss, "val_loss": val_loss},
             epoch,
         )
         self.summary_writer.add_scalars(
-            "uq/{}/acc".format(self.tensorboard_logtag),
+            f"uq/{self.tensorboard_logtag}/acc",
             {"train_acc": train_acc, "val_acc": val_acc},
             epoch,
         )
         self.summary_writer.add_scalars(
-            "uq/{}/lr".format(self.tensorboard_logtag),
+            f"uq/{self.tensorboard_logtag}/lr",
             {"learning_rate": np.array(lr)},
             epoch,
         )
@@ -200,9 +203,8 @@ class StochasticBertTrainer(object):
             loss, logits = self._batch_train_step(input_ids, attention_mask, targets)
             if torch.isnan(loss):
                 logger.warning(
-                    "loss is nan at epoch {} for training batch_idx {}".format(
+                    "loss is nan at epoch %d for training batch_idx %d",
                         epoch, batch_idx
-                    )
                 )
             total_train_loss += loss.item()
             total_train_correct += self._get_num_correct(logits, targets)
@@ -235,9 +237,8 @@ class StochasticBertTrainer(object):
                 )
                 if torch.isnan(loss):
                     logger.warning(
-                        "loss is nan at epoch {} for validation batch_idx {}".format(
+                        "loss is nan at epoch %d for validation batch_idx %d",
                             epoch, batch_idx
-                        )
                     )
                 total_val_correct += self._get_num_correct(logits, targets)
                 total_val_loss += loss.item()
@@ -245,34 +246,39 @@ class StochasticBertTrainer(object):
         return total_val_loss, val_acc
 
     def fit(self) -> StochasticBertBinaryClassifier:
-        logger.info("begin to train model for max_iter {}".format(self.max_iter))
+        logger.info(
+            "begin to train model for max_iter %d with train data size: %d",
+            self.max_iter,
+            len(self.train_dataloader.dataset),
+        )
         old_usage = torch.cuda.memory_allocated(device=self.device)
         self.model = self.model.to(self.device, non_blocking=self.pin_memory)
         tqdm_iterator = tqdm(
             range(self.max_iter),
-            desc="model_{}".format(self.model_idx),
+            desc=f"model_{self.model_idx}",
             position=1 + self.model_idx,
         )
         # tqdm_iterator = tqdm(range(self.max_iter))
         for epoch in tqdm_iterator:
             total_train_loss, train_acc = self._train_epoch(epoch)
             total_val_loss, val_acc = self._validation_epoch(epoch)
+            mean_train_loss = total_train_loss / len(self.train_dataloader.dataset)
+            mean_val_loss = total_val_loss / len(self.val_dataloader.dataset)
 
             logger.info(
-                "epoch: {}, learning_rate: {}, total_train_loss: {} total_val_loss: {} train_acc: {}, val_acc: {}".format(
+                "epoch: %d, learning_rate: %s, total_train_loss: %f, total_val_loss: %f, train_acc: %f, val_acc: %f",
                     epoch,
-                    self.lr_scheduler.get_last_lr(),
+                    str(self.lr_scheduler.get_last_lr()),
                     total_train_loss,
                     total_val_loss,
                     train_acc,
-                    val_acc,
-                )
+                    val_acc
             )
 
             self._log_tb_training_summary(
                 epoch,
-                total_train_loss,
-                total_val_loss,
+                mean_train_loss,
+                mean_val_loss,
                 train_acc,
                 val_acc,
                 self.lr_scheduler.get_last_lr(),
@@ -303,15 +309,14 @@ class StochasticBertTrainer(object):
         torch.cuda.empty_cache()
         new_usage = torch.cuda.memory_allocated(device=self.device)
         logger.info(
-            "Model {}: CUDA memory allocation {} -> {}".format(
+            "Model %d: CUDA memory allocation %d -> %d",
                 self.model_idx, old_usage, new_usage
-            )
         )
-        logger.info("completed training of member model {}".format(self.model_idx))
+        logger.info("completed training of member model %d", self.model_idx)
         return self.model
 
 
-class StochasticEnsembleTrainer(object):
+class StochasticEnsembleTrainer:
     """A trainer for an ensemble classifiers of Bert+MLP.
 
     The trainer supports Checkpoint and learning scheduler.
@@ -384,7 +389,7 @@ class StochasticEnsembleTrainer(object):
             desc="ensemble",
         ):
             # for model_idx,model in enumerate(self.ensemble_classifier):
-            logger.info("begin to train model {}".format(model_idx))
+            logger.info("begin to train model %d", model_idx)
             mp.set_sharing_strategy("file_system")
             # ctx = mp.get_context('spawn')
             # mp.set_sharing_strategy('file_descriptor')
@@ -401,16 +406,30 @@ class StochasticEnsembleTrainer(object):
                     self.trainer_config,
                     self.early_stopper,
                     self.tensorboard_logdir,
-                    self.tensorboard_logtag + "_m_{}".format(model_idx),
+                    f"{self.tensorboard_logtag}_m_{model_idx}",
                     self.device,
                     get_global_logfilename(),
                 ),
             )
             p.start()
             p.join()
-            logger.info("finished training model {}".format(model_idx))
+            logger.info("finished training model %d", model_idx)
         self.ensemble_classifier, total_loss = self.load_checkpoint()
         self.checkpoint.save_ensemble_meta(self.model_size, total_loss)
+        if self.checkpoint.ckpt_tag:
+            if self.datasets.pool_dataset:
+                self.checkpoint.save_datasets(
+                    self.datasets.train_dataset,
+                    self.datasets.val_dataset,
+                    self.datasets.test_dataset,
+                    self.datasets.pool_dataset,
+                )
+            else:
+                self.checkpoint.save_datasets(
+                    self.datasets.train_dataset,
+                    self.datasets.val_dataset,
+                    self.datasets.test_dataset
+                )
         return self.ensemble_classifier
 
     def load_checkpoint(self) -> Tuple[StochasticEnsembleBertClassifier, float]:
@@ -419,7 +438,7 @@ class StochasticEnsembleTrainer(object):
             self.ensemble_classifier
         )
         for model_idx, model in enumerate(self.ensemble_classifier):
-            logger.debug("loading checkpoint for member model {}".format(model_idx))
+            logger.debug("loading checkpoint for member model %d", model_idx)
             assert isinstance(model_idx, int)
             assert isinstance(model, StochasticBertBinaryClassifier)
             criteria = get_train_criteria(self.trainer_config)
@@ -440,7 +459,7 @@ class StochasticEnsembleTrainer(object):
             )
             model_list[model_idx] = model
             min_total_loss += min_member_loss
-            logger.debug("loaded checkpoint for member model {}".format(model_idx))
+            logger.debug("loaded checkpoint for member model %d", model_idx)
         self.ensemble_classifier.model_ensemble = model_list
 
         self.checkpoint.min_total_loss = min_total_loss
@@ -465,7 +484,6 @@ class StochasticEnsembleTrainer(object):
 # from .experiment import ExperimentConfig
 
 # logger = logging.getLogger(__name__)
-
 
 
 # def get_train_criteria(

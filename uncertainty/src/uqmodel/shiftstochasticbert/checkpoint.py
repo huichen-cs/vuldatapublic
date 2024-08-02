@@ -113,6 +113,10 @@ class EnsembleCheckpoint(object):
         else:
             return False
 
+    def reset(self):
+        self._min_member_losses = self._init_min_member_losses.copy()
+        return self
+
     def save_ensemble_meta(self, ensemble_size: int, total_loss: float) -> None:
         en_filepath = self.chkt_model_meta_path()
         en_dict = {"ensemble_size": ensemble_size, "total_loss": total_loss}

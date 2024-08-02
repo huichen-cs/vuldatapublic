@@ -15,6 +15,7 @@ from .uq_metrics import (
 
 logger = logging.getLogger(__name__)
 
+
 class StochasticVanillaBertClassifierEvalautor(object):
     """Evaluate Bert classifier with Monte Carlo Dropout."""
 
@@ -231,8 +232,6 @@ class StochasticVanillaBertClassifierEvalautor(object):
         result_dict["count_list"] = count_list
         logger.info("result_dict = {}".format(self.result_dict_to_json(result_dict)))
         return result_dict
-
-
 
     def compute_eval_metrics(self, config: ExperimentConfig):
         self.model = self.model.to(config.device)

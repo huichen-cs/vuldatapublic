@@ -3,8 +3,8 @@ import os
 import sys
 import torch
 
-from uqmodel.stochasticensemble.logging_utils import init_logging
-from uqmodel.stochasticensemble.train_utils import (
+from uqmodel.shiftstochasticps.logging_utils import init_logging
+from uqmodel.shiftstochasticps.train_utils import (
     EnsembleCheckpoint,
     SamplingFeatureDataSet,
     build_datasets,
@@ -12,12 +12,12 @@ from uqmodel.stochasticensemble.train_utils import (
     build_dataloaders,
     get_trained_model,
 )
-from uqmodel.stochasticensemble.eval_utils import (
+from uqmodel.shiftstochasticps.eval_utils import (
     compute_uq_eval_metrics,
     result_dict_to_json,
 )
-from uqmodel.stochasticensemble.dataloader_utils import get_test_label
-from uqmodel.stochasticensemble.experiment_config import (
+from uqmodel.shiftstochasticps.dataloader_utils import get_test_label
+from uqmodel.shiftstochasticps.experiment_config import (
     get_experiment_config,
     setup_reproduce,
 )

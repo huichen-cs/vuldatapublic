@@ -67,6 +67,7 @@ def get_extended_argparser() -> argparse.ArgumentParser:
     )
     return parser
 
+
 def get_extended_args(
     config: ExperimentConfig, parser: argparse.ArgumentParser = None
 ) -> ExperimentConfig:
@@ -76,6 +77,7 @@ def get_extended_args(
     if args.action:
         config.action = args.action
     return config
+
 
 def setup_experiment() -> ExperimentConfig:
     parser = get_extended_argparser()
@@ -102,13 +104,14 @@ def setup_experiment() -> ExperimentConfig:
 
     config = get_extended_args(config, parser)
 
-    config.trainer.use_model = 'use_checkpoint'
+    config.trainer.use_model = "use_checkpoint"
 
     return config
 
 
 def load_from_checkpoint(config: ExperimentConfig, tag=None):
     ckpt = EnsembleCheckpoint(
+        config.model.ensemble_size,
         config.trainer.checkpoint.dir_path,
         warmup_epochs=config.trainer.checkpoint.warmup_epochs,
         tag=tag,
@@ -168,7 +171,7 @@ def load_from_checkpoint(config: ExperimentConfig, tag=None):
     )
 
     try:
-        ensemble = trainer.load_checkpoint()
+        ensemble, _ = trainer.load_checkpoint()
         logger.info("use the ensemble model from checkpoint, no training")
     except FileNotFoundError as err:
         raise ValueError(
@@ -176,11 +179,16 @@ def load_from_checkpoint(config: ExperimentConfig, tag=None):
                 config.trainer.checkpoint.dir_path
             )
         ) from err
+    if isinstance(ensemble, tuple):
+        ensemble = ensemble[0]
     return test_dataloader, ps_columns, ensemble
 
 
-def load_ensemble_from_checkpoint(config: ExperimentConfig, ps_columns: list, tag=None):
+def load_ensemble_from_checkpoint(
+    config: ExperimentConfig, ps_columns: list, tag=None
+) -> StochasticEnsembleClassifier:
     ckpt = EnsembleCheckpoint(
+        config.model.ensemble_size,
         config.trainer.checkpoint.dir_path,
         warmup_epochs=config.trainer.checkpoint.warmup_epochs,
         tag=tag,
@@ -218,10 +226,16 @@ def load_ensemble_from_checkpoint(config: ExperimentConfig, ps_columns: list, ta
                 config.trainer.checkpoint.dir_path
             )
         ) from err
+    if isinstance(ensemble, tuple):
+        ensemble = ensemble[0]
     return ensemble
 
 
-def compute_eval_metrics(ensemble, test_dataloader, device=None):
+def compute_eval_metrics(
+    ensemble: StochasticEnsembleClassifier,
+    test_dataloader: torch.utils.data.DataLoader,
+    device: torch.device = None,
+):
     test_proba_pred_mean = list(
         ensemble.predict_mean_proba(
             test_dataloader, config.trainer.aleatoric_samples, device=device
@@ -375,7 +389,9 @@ def run_experiment(config: ExperimentConfig) -> dict:
                 )
 
                 result_list.append(
-                    compute_eval_metrics(ensemble, test_dataloader, device=config.device)
+                    compute_eval_metrics(
+                        ensemble, test_dataloader, device=config.device
+                    )
                 )
                 logger.info("done {} at {}".format(method, i))
             result_dict[method] = result_list

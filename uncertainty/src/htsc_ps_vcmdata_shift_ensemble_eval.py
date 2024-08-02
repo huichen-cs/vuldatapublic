@@ -6,18 +6,18 @@ import logging
 import os
 import torch
 
-from uqmodel.stochasticensemble.logging_utils import init_logging
-from uqmodel.stochasticensemble.dataloader_utils import get_test_label
-from uqmodel.stochasticensemble.eval_utils import (
+from uqmodel.shiftstochasticps.logging_utils import init_logging
+from uqmodel.shiftstochasticps.dataloader_utils import get_test_label
+from uqmodel.shiftstochasticps.eval_utils import (
     load_from_checkpoint_with_datashift,
     compute_uq_eval_metrics,
     result_dict_to_json,
 )
-from uqmodel.stochasticensemble.experiment_config import (
+from uqmodel.shiftstochasticps.experiment_config import (
     get_experiment_config,
     setup_reproduce,
 )
-from uqmodel.stochasticensemble.eval_utils import EnsembleDisentangledUq
+from uqmodel.shiftstochasticps.eval_utils import EnsembleDisentangledUq
 
 
 logger = logging.getLogger(__name__)

@@ -1,17 +1,16 @@
 import logging
 import os
 import pickle  # nosec
-import torch
 from typing import List, Tuple, Union
 
-from .stochastic_bert_mlc import (
-    StochasticBertBinaryClassifier,
-)
+import torch
+
+from .stochastic_bert_mlc import StochasticBertBinaryClassifier
 
 logger = logging.getLogger(__name__)
 
 
-class EnsembleCheckpoint(object):
+class EnsembleCheckpoint:
     """Save and load checkpoint."""
 
     def __init__(
@@ -29,8 +28,10 @@ class EnsembleCheckpoint(object):
             os.makedirs(self._ckpt_path)
         if min_member_losses is None:
             self._min_member_losses = [0.0] * ensemble_size
+            self._init_min_member_losses = [0.0] * ensemble_size
         else:
             self._min_member_losses = min_member_losses
+            self._init_min_member_losses = min_member_losses.copy()
         self._warmup_epochs = warmup_epochs
         self._checkpointed = False
         self._tag = tag
@@ -92,32 +93,36 @@ class EnsembleCheckpoint(object):
 
     def chkt_model_meta_path(self, use_default: bool = False) -> str:
         if self._tag and not use_default:
-            en_filepath = os.path.join(self._ckpt_path, "model_en_{}".format(self._tag))
+            en_filepath = os.path.join(self._ckpt_path, f"model_en_{self._tag}")
         else:
             en_filepath = os.path.join(self._ckpt_path, "model_en")
         return en_filepath
 
     def min_loss_updated(self, index: int, epoch: int, loss: float) -> bool:
         logger.debug(
-            f"Checkpoint: checking for min loss: {self._min_member_losses} loss: {loss}"
+            "Checkpoint: checking for min loss: %s loss: %f",
+            str(self._min_member_losses),
+            loss,
         )
         if epoch >= self._warmup_epochs:
             if self._min_member_losses[index] and loss < self._min_member_losses[index]:
                 self._min_member_losses[index] = loss
                 return True
-            elif not self._min_member_losses[index]:
+            if not self._min_member_losses[index]:
                 self._min_member_losses[index] = loss
                 return True
-            else:
-                return False
-        else:
             return False
+        return False
+
+    def reset(self):
+        self._min_member_losses = self._init_min_member_losses.copy()
+        return self
 
     def save_ensemble_meta(self, ensemble_size: int, total_loss: float) -> None:
         en_filepath = self.chkt_model_meta_path()
         en_dict = {"ensemble_size": ensemble_size, "total_loss": total_loss}
         torch.save(en_dict, en_filepath)
-        logger.info("saved checkpoint meta at {}".format(en_filepath))
+        logger.info("saved checkpoint meta at %s", en_filepath)
 
     def save_member_checkpoint(
         self,
@@ -142,9 +147,7 @@ class EnsembleCheckpoint(object):
             },
             file_path,
         )
-        logger.info(
-            "saved checkpoint ensemble member {} at {}".format(index, file_path)
-        )
+        logger.info("saved checkpoint ensemble member %d at %s", index, file_path)
 
     def load_model_meta(self) -> dict:
         try:
@@ -156,7 +159,7 @@ class EnsembleCheckpoint(object):
                 en_dict = torch.load(en_filepath)
             except FileNotFoundError as err:
                 raise err
-        logger.info("load model meta for ensemble at {}".format(en_filepath))
+        logger.info("load model meta for ensemble at %s", en_filepath)
         return en_dict
 
     def load_member_checkpoint(
@@ -177,6 +180,9 @@ class EnsembleCheckpoint(object):
         try:
             file_path = self.ckpt_model_path(model_idx)
             member_checkpoint = torch.load(file_path)
+            logger.debug(
+                "loaded member model for member %d from %s", model_idx, file_path
+            )
         except FileNotFoundError as err:
             raise err
         epoch = member_checkpoint["epoch"]
@@ -186,7 +192,7 @@ class EnsembleCheckpoint(object):
         scheduler.load_state_dict(member_checkpoint["scheduler_state_dict"])
         criteria.load_state_dict(member_checkpoint["criteria_state_dict"])
         min_member_loss = member_checkpoint["min_member_loss"]
-        logger.info("load model {} for ensemble at {}".format(model_idx, file_path))
+        logger.info("load model %d for ensemble at %s", model_idx, file_path)
         return (epoch, model, optimizer, scheduler, criteria, min_member_loss)
 
     def save_datasets(
@@ -194,18 +200,29 @@ class EnsembleCheckpoint(object):
         train_dataset: torch.utils.data.TensorDataset,
         val_dataset: torch.utils.data.TensorDataset,
         test_dataset: torch.utils.data.TensorDataset,
+        pool_dataset: Union[torch.utils.data.TensorDataset, None] = None,
     ) -> None:
         for ds_type, ds in zip(
-            ["train", "val", "test"], [train_dataset, val_dataset, test_dataset]
+            ["train", "val", "test", "pool"],
+            [train_dataset, val_dataset, test_dataset, pool_dataset],
         ):
+            if not ds:
+                continue
             file_path = self.ckpt_dataset_path(ds_type)
             with open(file_path, "wb") as f:
                 pickle.dump(ds, f)
+            logger.debug("saved %s dataset to %s", ds_type, file_path)
 
     def load_datasets(self) -> List[torch.utils.data.TensorDataset]:
         ds_list = []
-        for ds_type in ["train", "val", "test"]:
+        for ds_type in ["train", "val", "test", "pool"]:
             file_path = self.ckpt_dataset_path(ds_type)
+            if ds_type != "pool" and not os.path.exists(file_path):
+                raise FileNotFoundError(f"Dataset file {file_path} not found")
+            if not os.path.exists(file_path):
+                logger.info("Dataset file %s not found", file_path)
+                continue
             with open(file_path, "rb") as f:
                 ds_list.append(pickle.load(f))  # nosec
+            logger.debug("loaded %s dataset from %s", ds_type, file_path)
         return ds_list

@@ -3,7 +3,7 @@ import torch
 from .ps_data import get_dataset_stats
 
 
-logger = logging.getLogger("focalloss")
+logger = logging.getLogger(__name__)
 
 
 def compute_focalloss_alpha(train_dataset, n_classes, imbalance_ratio, device):
