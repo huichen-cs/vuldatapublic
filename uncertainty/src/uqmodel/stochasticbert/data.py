@@ -1,18 +1,24 @@
+"""Experiment data."""
 import gc
 import logging
 import random
+
 import torch
 import transformers
-from .sap_data import SapData
-from .ps_data import PsData
-from .experiment import ExperimentConfig
+
 from .checkpoint import EnsembleCheckpoint
+from .experiment import ExperimentConfig
+from .ps_data import PsData
+from .sap_data import SapData
 
 logger = logging.getLogger(__name__)
 
 
 class TextClassificationDataset(torch.utils.data.TensorDataset):
+    """Experiment dataset."""
+
     def __init__(self, data, tokenizer, max_len, num_classes):
+        super().__init__()
         self.data = data
         self.tokenizer = tokenizer
         self.max_len = max_len
@@ -42,8 +48,13 @@ class TextClassificationDataset(torch.utils.data.TensorDataset):
         assert len(input_ids) == len(attention_mask) == self.max_len
         return input_ids, attention_mask, labels
 
+    def get_commit_hash(self, index):
+        return self.data.iloc[index]["commit"]
+
 
 class BertExperimentDatasets(object):
+    """A collection of datasets needed by experiments."""
+
     def __init__(
         self,
         config: ExperimentConfig,
@@ -73,13 +84,21 @@ class BertExperimentDatasets(object):
         self.run_dataset, self.pool_dataset = torch.utils.data.random_split(
             self.train_dataset, [init_train_size, pool_data_size], generator=generator
         )
-        logger.debug("BertExperimentDatasets - data splits: init_train_factor: %d, init_train_size: %d, len(train_dataset): %d, len(run_dataset): %d, len(pool_dataset): %d",
-                     init_train_factor,
-                     init_train_size,
-                     len(self.train_dataset),
-                     len(self.run_dataset),
-                     len(self.pool_dataset)
-                    )
+        logger.debug(
+            (
+                "BertExperimentDatasets - data splits: "
+                "init_train_factor: %d, "
+                "init_train_size: %d, "
+                "len(train_dataset): %d, "
+                "len(run_dataset): %d, "
+                "len(pool_dataset): %d",
+            ),
+            init_train_factor,
+            init_train_size,
+            len(self.train_dataset),
+            len(self.run_dataset),
+            len(self.pool_dataset),
+        )
 
     def update_checkpoint(self, tag):
         self.ckpt.ckpt_tag = tag
@@ -89,39 +108,65 @@ class BertExperimentDatasets(object):
     ):
         n = 0
         while epi_indices and n < size:
-            logger.debug(f"enter changeset selection loop: len(epi_indices)={len(epi_indices)}, n = {n} < size = {size}")
+            logger.debug(
+                (
+                    "enter changeset selection loop: "
+                    "len(epi_indices) = %d, "
+                    "n = %d < size = %d"
+                ),
+                len(epi_indices),
+                n,
+                size,
+            )
             candidate_epi = rank_func(epi_indices, key=lambda u: u["epi"])
             candidate_ale = rank_func(ale_indices, key=lambda u: u["ale"])
             if candidate_epi["index"] == candidate_ale["index"]:
                 logger.debug(
-                    "before rejecting bad index {}, len(epi_indices) = {} len(ale_indices) =  {}, len(bad_indices) = {}".format(
-                        candidate_epi["index"],
-                        len(epi_indices),
-                        len(ale_indices),
-                        len(bad_indices),
-                    )
+                    (
+                        "before rejecting bad index %d: "
+                        "len(epi_indices) = %d, "
+                        "len(ale_indices) = %d, "
+                        "len(bad_indices) = %d"
+                    ),
+                    candidate_epi["index"],
+                    len(epi_indices),
+                    len(ale_indices),
+                    len(bad_indices),
                 )
                 bad_indices.append(candidate_epi["index"])
                 epi_indices.remove(candidate_epi)
                 ale_indices.remove(candidate_ale)
                 logger.debug(
-                    "after rejecting bad index {}, len(epi_indices) = {} len(ale_indices) =  {}, len(bad_indices) = {}".format(
-                        candidate_epi["index"],
-                        len(epi_indices),
-                        len(ale_indices),
-                        len(bad_indices),
-                    )
+                    (
+                        "after rejecting bad index %d: "
+                        "len(epi_indices) = %d, "
+                        "len(ale_indices) = %d, "
+                        "len(bad_indices) = %d"
+                    ),
+                    candidate_epi["index"],
+                    len(epi_indices),
+                    len(ale_indices),
+                    len(bad_indices),
                 )
                 logger.debug(
-                    "rejected index {}, due to  candidate_epi {} == candidate_ale {}".format(
-                        candidate_epi["index"], candidate_epi, candidate_ale
-                    )
+                    (
+                        "rejected index %d, "
+                        "due to candidate_epi %s == candidate_ale %s"
+                    ),
+                    candidate_epi["index"],
+                    str(candidate_epi),
+                    str(candidate_ale),
                 )
             else:
                 logger.debug(
-                    "before accepting good index {}, len(epi_indices) = {} len(ale_indices) =  {}".format(
-                        candidate_epi["index"], len(epi_indices), len(ale_indices)
-                    )
+                    (
+                        "before accepting good index %d: "
+                        "len(epi_indices) = %d, "
+                        "len(ale_indices) = %d"
+                    ),
+                    candidate_epi["index"],
+                    len(epi_indices),
+                    len(ale_indices),
                 )
                 good_indices.append(candidate_epi["index"])
                 epi_indices.remove(candidate_epi)
@@ -129,20 +174,30 @@ class BertExperimentDatasets(object):
                     filter(lambda u: u["index"] != candidate_epi["index"], ale_indices)
                 )[:]
                 logger.debug(
-                    "after accepting index {}, len(epi_indices) = {} len(ale_indices) =  {}".format(
-                        candidate_epi["index"], len(epi_indices), len(ale_indices)
-                    )
+                    (
+                        "after accepting index %d: "
+                        "len(epi_indices) = %d, "
+                        "len(ale_indices) =  %d"
+                    ),
+                    candidate_epi["index"],
+                    len(epi_indices),
+                    len(ale_indices),
                 )
                 n += 1
                 logger.debug(
-                    "accepted index {}, due to candidate_epi {} != candidate_ale {}".format(
-                        candidate_epi["index"], candidate_epi, candidate_ale
-                    )
+                    (
+                        "accepted index %d, "
+                        "due to candidate_epi %s != candidate_ale %s"
+                    ),
+                    candidate_epi["index"],
+                    str(candidate_epi),
+                    str(candidate_ale),
                 )
                 logger.debug(
-                    "len(good_indices) = {}, wanted size = {}, n = {} now".format(
-                        len(good_indices), size, n
-                    )
+                    "len(good_indices) = %d, wanted size = %d, n = %d now",
+                    len(good_indices),
+                    size,
+                    n,
                 )
         logger.debug("leave __update_by_intuition ...")
 
@@ -155,9 +210,14 @@ class BertExperimentDatasets(object):
             len(self.pool_dataset) == len(entropy_epistermic) == len(entropy_aleatoric)
         )
         logger.debug(
-            "len(pool_dataset): {}, len(entropy_epistermic): {}, len(entropy_aleatoric): {}".format(
-                len(self.pool_dataset), len(entropy_epistermic), len(entropy_aleatoric)
-            )
+            (
+                "len(pool_dataset): %d, "
+                "len(entropy_epistermic): %d, "
+                "len(entropy_aleatoric): %d"
+            ),
+            len(self.pool_dataset),
+            len(entropy_epistermic),
+            len(entropy_aleatoric),
         )
 
         self.ckpt.ckpt_tag, self.ckpt.min_total_loss = tag, None
@@ -173,49 +233,79 @@ class BertExperimentDatasets(object):
                 size, epi_indices, ale_indices, min, bad_indices, good_indices
             )
         else:
-            raise ValueError("unimplemented method {}".format(method))
+            raise ValueError(f"unimplemented method {method}")
         if len(good_indices) >= size:
             indices = good_indices
         else:
             logger.warning(
-                "there is no more good canndidates: len(epi_indicies) = {}, len(ale_indices) = {}".format(
-                    len(epi_indices), len(ale_indices)
-                )
+                (
+                    "there is no more good canndidates: "
+                    "len(epi_indicies) = %d, "
+                    "len(ale_indices) = %d",
+                ),
+                len(epi_indices),
+                len(ale_indices),
             )
             logger.debug(
-                "len(good_indices) = {}, len(epi_indicies) = {}, len(ale_indices) = {}".format(
-                    len(good_indices), len(epi_indices), len(ale_indices)
-                )
+                (
+                    "len(good_indices) = %d, "
+                    "len(epi_indicies) = %d, "
+                    "len(ale_indices) = %d"
+                ),
+                len(good_indices),
+                len(epi_indices),
+                len(ale_indices),
             )
             assert len(epi_indices) == len(ale_indices) == 0
             if size - len(good_indices) <= len(bad_indices):
                 indices = good_indices + bad_indices[0 : (size - len(good_indices))]
                 logger.warning(
-                    "not enough good indices, use {} bad indices from {} bad indicies".format(
-                        size - len(good_indices), len(bad_indices)
-                    )
+                    (
+                        "not enough good indices, "
+                        "use %d bad indices from %d bad indicies",
+                    ),
+                    size - len(good_indices),
+                    len(bad_indices),
                 )
             else:
                 indices = good_indices + bad_indices
                 logger.warning(
-                    "not enough good indices, use all {} bad indices".format(
-                        len(bad_indices)
-                    )
+                    "not enough good indices, use all %d bad indices", len(bad_indices)
                 )
-        selected = torch.utils.data.Subset(self.pool_dataset, indices)
-        logger.debug(
-            "selected {} instances using method {}".format(len(selected), method)
+        # selected = torch.utils.data.Subset(self.pool_dataset, indices)
+        data_selected = self.pool_dataset.data.iloc[indices]
+        selected = TextClassificationDataset(
+            data_selected.copy(),
+            self.pool_dataset.tokenizer,
+            self.pool_dataset.max_len,
+            self.pool_dataset.num_classes,
         )
-        self.run_dataset = torch.utils.data.ConcatDataset([self.run_dataset, selected])
-        logger.debug("rundataset is now size {}".format(len(self.run_dataset)))
-
-        indices = [i for i in range(len(self.pool_dataset)) if i not in indices]
-        self.pool_dataset = torch.utils.data.Subset(self.pool_dataset, indices)
-        logger.debug("pool dataset is now size {}".format(len(self.pool_dataset)))
-        logger.info(
-            "method: {}, len(run_dataset): {}, len(pool_dataset): {}".format(
-                method, len(self.run_dataset), len(self.pool_dataset)
+        logger.debug("selected %d instances using method %s", len(selected), method)
+        if isinstance(self.run_dataset, torch.utils.data.ConcatDataset):
+            self.run_dataset = torch.utils.data.ConcatDataset(
+                self.run_dataset.datasets + [selected]
             )
+        else:
+            self.run_dataset = torch.utils.data.ConcatDataset(
+                [self.run_dataset, selected]
+            )
+        logger.debug("rundataset is now size %d", len(self.run_dataset))
+
+        # indices = [i for i in range(len(self.pool_dataset)) if i not in indices]
+        # self.pool_dataset = torch.utils.data.Subset(self.pool_dataset, indices)
+        data_pool = self.pool_dataset.data.drop(data_selected.index)
+        self.pool_dataset = TextClassificationDataset(
+            data_pool,
+            self.pool_dataset.tokenizer,
+            self.pool_dataset.max_len,
+            self.pool_dataset.num_classes,
+        )
+        logger.debug("pool dataset is now size %d", len(self.pool_dataset))
+        logger.info(
+            "method: %s, len(run_dataset): %d, len(pool_dataset): %d",
+            method,
+            len(self.run_dataset),
+            len(self.pool_dataset),
         )
         logger.debug("leave update_by_intuition ...")
 
@@ -227,27 +317,25 @@ class BertExperimentDatasets(object):
             zip(range(len(self.pool_dataset)), entropy_epistermic, entropy_aleatoric)
         )
         if method != "random":  # case 1
-            raise ValueError("incorrect method {}".format(method))
+            raise ValueError(f"incorrect method {method}")
 
         # randomly select size samples and remove them from uq list
-        logger.debug(
-            "sampling size {} from len(uq_list): {}".format(size, len(uq_list))
-        )
+        logger.debug("sampling size %d from len(uq_list): %d", size, len(uq_list))
         indices = [uq[0] for uq in random.sample(uq_list, size)]
 
         selected = torch.utils.data.Subset(self.pool_dataset, indices)
         self.run_dataset = torch.utils.data.ConcatDataset([self.run_dataset, selected])
-        logger.debug("rundataset is now size {}".format(len(self.run_dataset)))
+        logger.debug("rundataset is now size %d", len(self.run_dataset))
 
         indices = [i for i in range(len(self.pool_dataset)) if i not in indices]
         self.pool_dataset = torch.utils.data.Subset(self.pool_dataset, indices)
-        logger.debug("pool dataset is now size {}".format(len(self.pool_dataset)))
+        logger.debug("pool dataset is now size %d", len(self.pool_dataset))
         logger.info(
-            "method: {}, len(run_dataset): {}, len(pool_dataset): {}".format(
-                method, len(self.run_dataset), len(self.pool_dataset)
-            )
+            "updated with method: %s, len(run_dataset): %d, len(pool_dataset): %d",
+            method,
+            len(self.run_dataset),
+            len(self.pool_dataset),
         )
-
 
     def update_by_score(
         self, size, entropy_epistermic, entropy_aleatoric, method, tag, train=False
@@ -262,7 +350,7 @@ class BertExperimentDatasets(object):
         if method == "ehal":  # case 1
             sorted_uq_list = sorted(uq_list, key=lambda u: u[1] / u[2], reverse=True)
         else:
-            raise ValueError("unimplemented method {}".format(method))
+            raise ValueError(f"unimplemented method {method}")
 
         indices = [uq[0] for uq in sorted_uq_list[0:size]]
         selected = torch.utils.data.Subset(self.pool_dataset, indices)
@@ -271,9 +359,10 @@ class BertExperimentDatasets(object):
         indices = [uq[0] for uq in sorted_uq_list[size:]]
         self.pool_dataset = torch.utils.data.Subset(self.pool_dataset, indices)
         logger.info(
-            "method: {}, len(run_dataset): {}, len(pool_dataset): {}".format(
-                method, len(self.run_dataset), len(self.pool_dataset)
-            )
+            "updated with method: %s, len(run_dataset): %d, len(pool_dataset): %d",
+            method,
+            len(self.run_dataset),
+            len(self.pool_dataset),
         )
 
     def update(
@@ -304,7 +393,7 @@ class BertExperimentDatasets(object):
         elif method == "alel":  # case 8
             sorted_uq_list = sorted(uq_list, key=lambda u: (u[2], u[1]))
         else:
-            raise ValueError("unimplemented method {}".format(method))
+            raise ValueError(f"unimplemented method {method}")
 
         indices = [uq[0] for uq in sorted_uq_list[0:size]]
         selected = torch.utils.data.Subset(self.pool_dataset, indices)
@@ -313,28 +402,22 @@ class BertExperimentDatasets(object):
         indices = [uq[0] for uq in sorted_uq_list[size:]]
         self.pool_dataset = torch.utils.data.Subset(self.pool_dataset, indices)
         logger.info(
-            "method: {}, len(run_dataset): {}, len(pool_dataset): {}".format(
-                method, len(self.run_dataset), len(self.pool_dataset)
-            )
+            "updated with method: %s, len(run_dataset): %d, len(pool_dataset): %d",
+            method,
+            len(self.run_dataset),
+            len(self.pool_dataset),
         )
 
     def _generate_datasets(self):
         if self.dataset_name == "PSDATA" or self.dataset_name == "VCMDATA":
             bert_data = PsData(self.config.data.data_dir)
-            logger.info(
-                "loading data set {} from {}".format(
-                    self.dataset_name, self.config.data.data_dir
-                )
-            )
         elif self.dataset_name == "SAPDATA":
             bert_data = SapData(self.config.data.data_dir)
-            logger.info(
-                "loading data set {} from {}".format(
-                    self.dataset_name, self.config.data.data_dir
-                )
-            )
         else:
-            raise ValueError("unsupported dataset {}".format(self.dataset_name))
+            raise ValueError(f"unsupported dataset {self.dataset_name}")
+        logger.info(
+            "loaded data set %s from %s", self.dataset_name, self.config.data.data_dir
+        )
         data_splits = bert_data.train_test_val_split(
             self.config.data.train_test_ratios[0],
             self.config.data.train_test_ratios[1],
@@ -369,32 +452,32 @@ class BertExperimentDatasets(object):
             try:
                 train_dataset, val_dataset, test_dataset = self.ckpt.load_datasets()
                 logger.info(
-                    "loaded train/val/test datasets from checkpoint at {}".format(
-                        self.config.trainer.checkpoint.dir_path
-                    )
+                    "loaded train/val/test datasets from checkpoint at %s",
+                    self.config.trainer.checkpoint.dir_path,
                 )
             except FileNotFoundError as err:
-                logger.info(
-                    "unable to load checkpoint, prepare data sets "
-                    + "with train/test ratios: {} and validation ratio: {}".format(
-                        self.config.train_test_ratios, self.config.val_ratio
-                    )
+                logger.error(
+                    "unable to load checkpoint from checkpoint at %s",
+                    self.config.trainer.checkpoint.dir_path,
                 )
                 raise err
         elif self.config.trainer.use_data == "try_checkpoint":
             try:
                 train_dataset, val_dataset, test_dataset = self.ckpt.load_datasets()
                 logger.info(
-                    "loaded train/val/test datasets from checkpoint at {}".format(
-                        self.config.trainer.checkpoint.dir_path
-                    )
+                    "loaded train/val/test datasets from checkpoint at %s",
+                    self.config.trainer.checkpoint.dir_path,
                 )
             except FileNotFoundError:
                 logger.info(
-                    "unable to load checkpoint, prepare data sets "
-                    + "with train/test ratios: {} and validation ratio: {}".format(
-                        self.config.data.train_test_ratios, self.config.data.val_ratio
-                    )
+                    (
+                        "tried to load checkpoint, but unsuccessful, "
+                        "prepare data sets with "
+                        "train/test ratios: %s and "
+                        "validation ratio: %f"
+                    ),
+                    str(self.config.data.train_test_ratios),
+                    self.config.data.val_ratio,
                 )
                 train_dataset, val_dataset, test_dataset = self._generate_datasets()
                 self.ckpt.save_datasets(train_dataset, val_dataset, test_dataset)
@@ -403,14 +486,16 @@ class BertExperimentDatasets(object):
             self.ckpt.save_datasets(train_dataset, val_dataset, test_dataset)
         else:
             raise ValueError(
-                "unsupported configuration option {} for config.trainer.use_data".format(
-                    self.config.trainer.use_model
-                )
+                "unsupported configuration option "
+                f"{self.config.trainer.use_model}"
+                " for config.trainer.use_data"
             )
         return train_dataset, val_dataset, test_dataset
 
 
 class BertExperimentDataLoaders(object):
+    """Dataloaders for the datasets needed for the experiments."""
+
     def __init__(self, config, datasets, train=True):
         self.config = config
         self.datasets = datasets
@@ -425,13 +510,13 @@ class BertExperimentDataLoaders(object):
         )
         self.pool_dataloader = torch.utils.data.DataLoader(
             datasets.pool_dataset,
-            batch_size=config.trainer.batch_size,
+            batch_size=config.trainer.infer_batch_size,
             num_workers=config.trainer.num_dataloader_workers,
             pin_memory=config.trainer.pin_memory,
         )
         self.val_dataloader = torch.utils.data.DataLoader(
             datasets.val_dataset,
-            batch_size=config.trainer.batch_size,
+            batch_size=config.trainer.val_batch_size,
             num_workers=config.trainer.num_dataloader_workers,
             pin_memory=config.trainer.pin_memory,
         )
@@ -440,10 +525,12 @@ class BertExperimentDataLoaders(object):
         else:
             self.test_dataloader = torch.utils.data.DataLoader(
                 datasets.test_dataset,
-                batch_size=config.trainer.batch_size,
+                batch_size=config.trainer.infer_batch_size,
                 num_workers=config.trainer.num_dataloader_workers,
                 pin_memory=config.trainer.pin_memory,
             )
-        logger.info(
-            f"len(run_dataset) of len(train_datasetf): {len(datasets.run_dataset)} of {len(datasets.train_dataset)}"
+        logger.debug(
+            "len(run_dataset) of len(train_datasetf): %d of %d",
+            len(datasets.run_dataset),
+            len(datasets.train_dataset),
         )

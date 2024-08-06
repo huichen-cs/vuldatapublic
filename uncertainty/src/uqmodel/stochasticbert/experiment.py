@@ -3,11 +3,11 @@ import ast
 import logging
 import os
 import random
+from configparser import ConfigParser, ExtendedInterpolation
+from typing import Union
+
 import numpy as np
 import torch
-from typing import Union
-from configparser import ConfigParser, ExtendedInterpolation
-
 
 logger = logging.getLogger(__name__)
 
@@ -213,6 +213,8 @@ class ExperimentConfig(object):
             self.use_data = "try_checkpoint"
             self.use_model = "try_checkpoint"
             self.batch_size = 128
+            self.val_batch_size = 128
+            self.infer_batch_size = 128
             self.max_dataloader_workers = 8
             self.max_iter = 1000
             self.early_stopping = self.EarlyStopping()
@@ -248,6 +250,14 @@ class ExperimentConfig(object):
                 self.use_model = config["trainer"]["use_model"]
             if "batch_size" in config["trainer"]:
                 self.batch_size = int(config["trainer"]["batch_size"])
+            if "val_batch_size" in config["trainer"]:
+                self.val_batch_size = int(config["trainer"]["val_batch_size"])
+            else:
+                self.val_batch_size = self.batch_size
+            if "infer_batch_size" in config["trainer"]:
+                self.infer_batch_size = int(config["trainer"]["infer_batch_size"])
+            else:
+                self.infer_batch_size = self.batch_size
             if "max_iter" in config["trainer"]:
                 self.max_iter = int(config["trainer"]["max_iter"])
             if "max_dataloader_workers" in config["trainer"]:
@@ -275,19 +285,8 @@ class ExperimentConfig(object):
             if "trainer.lr_scheduler" in config:
                 self.lr_scheduler.update_from_config(config["trainer.lr_scheduler"])
 
-        def __str__(self):
-            return "{{split_data: {}, use_data: {}, use_model: {}, batch_size: {}, max_iter: {}, earlystopping: {}, checkpoint: {}, optimizer: {}, criteria: {}, lr_scheduler: {}}}".format(
-                self.split_data,
-                self.use_data,
-                self.use_model,
-                self.batch_size,
-                self.max_iter,
-                self.early_stopping,
-                self.checkpoint,
-                self.optimizer,
-                self.criteria,
-                self.lr_scheduler,
-            )
+        def __repr__(self):
+            return str(self.__dict__)
 
         class EarlyStopping(object):
             def __init__(self):
@@ -393,21 +392,17 @@ class ExperimentConfig(object):
                         self.step_size = str_to_number(config["step_size"])
                 else:
                     raise ValueError(
-                        "unsupported learning scheduler {}".format(self.scheduler)
+                        f"unsupported learning scheduler {self.scheduler}"
                     )
 
             def __str__(self):
                 if self.scheduler == "CosineAnnealingWarmRestarts":
-                    return "{{scheduler: {}, T_0: {}, T_mult: {}}}".format(
-                        self.scheduler, self.T_0, self.T_mult
-                    )
+                    return f"{{scheduler: {self.scheduler}, T_0: {self.T_0}, T_mult: {self.T_mult}}}"
                 elif self.scheduler == "StepLR":
-                    return "{{scheduler: {}, gamma: {}, step_size: {}}}".format(
-                        self.scheduler, self.gamma, self.step_size
-                    )
+                    return f"{{scheduler: {self.scheduler}, gamma: {self.gamma}, step_size: {self.step_size}}}"
                 else:
                     raise ValueError(
-                        "unsupported learning scheduler {}".format(self.scheduler)
+                        f"unsupported learning scheduler {self.scheduler}"
                     )
 
 
@@ -441,7 +436,7 @@ def get_experiment_config(
         config = ExperimentConfig(args.config)
     else:
         config = ExperimentConfig()
-    logger.info(f"Experiment config: {config}")
+    logger.info("Experiment config: %s", config)
     return config
 
 

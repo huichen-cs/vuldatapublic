@@ -1,45 +1,34 @@
-import json
+"""UQ and Predictive Performance Evaluation Utilities."""
 import gc
+import json
 import logging
-import torch.multiprocessing as mp
+from typing import List
+
 import numpy as np
-import os
 import torch
+import torch.multiprocessing as mp
 import torchmetrics
 from packaging import version
-from typing import List
+from tqdm import tqdm
+
+from .dropout_mlc import DropoutClassifier
+from .ensemble_mlc import EnsembleClassifier, StochasticEnsembleClassifier
+from .experiment import ExperimentConfig
 
 # from typing import Tuple
 # from .calibration_error import binary_calibration_error
-from .logging_utils import init_logging, get_global_logfilename
-from .ensemble_mlc import StochasticEnsembleClassifier
-from .ensemble_trainer import StochasticEnsembleTrainer
-from .checkpoint import EnsembleCheckpoint
+from .logging_utils import get_global_logfilename, init_logging
 from .sampling_metrics import (
     compute_sampling_entropy,
     compute_sampling_mutual_information,
 )
+from .stochastic_metrics import entropy_batch, softmax_all, softmax_batch
 from .uq_metrics import (
+    brier_score_from_tensors,
     compute_binary_acc_vs_conf_from_tensors,
     compute_binary_metrics_vs_conf_from_tensors,
-    brier_score_from_tensors,
 )
-from .stochastic_metrics import (
-    softmax_batch,
-    entropy_batch,
-    softmax_all,
-)
-from .ensemble_mlc import EnsembleClassifier
-from .dropout_mlc import DropoutClassifier
 from .vanilla_mlc import VanillaClassifier
-from .stochastic_mlc import StochasticMultiLayerClassifier
-from .experiment import ExperimentConfig
-from .datashift import (
-    DataShift,
-    ShiftedFeatureDataSet,
-    PortionShiftedFeatureDataSet,
-)
-
 
 logger = logging.getLogger(__name__)
 
@@ -49,146 +38,6 @@ def get_one_hot_label(labels, num_classes=None, device=None):
         return torch.nn.functional.one_hot(labels, num_classes).to(device)
     else:
         return torch.nn.functional.one_hot(labels).to(device)
-
-
-def load_from_checkpoint_with_datashift(
-    model_type: str, config: ExperimentConfig, device: torch.DeviceObjType = None
-):
-    num_workers = (
-        os.cpu_count()
-        if os.cpu_count() < config.trainer.max_dataloader_workers
-        else config.trainer.max_dataloader_workers
-    )
-    ckpt = EnsembleCheckpoint(
-        config.trainer.checkpoint.dir_path,
-        warmup_epochs=config.trainer.checkpoint.warmup_epochs,
-    )
-
-    try:
-        train_dataset, val_dataset, test_dataset, ps_columns = ckpt.load_datasets()
-        logger.info(
-            "loaded train/val/test datasets from checkpoint at {}".format(
-                config.trainer.checkpoint.dir_path
-            )
-        )
-    except FileNotFoundError as err:
-        logger.error(
-            "failed to load train/va/test datasets from checkpoint at {}".format(
-                config.trainer.checkpoint.dir_path
-            )
-        )
-        raise err
-
-    if not config.datashift:
-        raise ValueError("configuration does not have data shift setup")
-
-    datashift = DataShift.from_dict(config.datashift.param_dict)
-    if config.data.shift_data_portion:
-        (train_dataset, val_dataset, test_dataset) = (
-            PortionShiftedFeatureDataSet(
-                train_dataset, datashift, config.data.shift_data_portion
-            ),
-            PortionShiftedFeatureDataSet(
-                val_dataset, datashift, config.data.shift_data_portion
-            ),
-            PortionShiftedFeatureDataSet(
-                test_dataset, datashift, config.data.shift_data_portion
-            ),
-        )
-        logger.info(
-            "portion {} data are applied data shiftat sigma".format(
-                config.datashift.sigma
-            )
-        )
-    else:
-        (train_dataset, val_dataset, test_dataset) = (
-            ShiftedFeatureDataSet(train_dataset, datashift),
-            ShiftedFeatureDataSet(val_dataset, datashift),
-            ShiftedFeatureDataSet(test_dataset, datashift),
-        )
-        logger.info(
-            "all data are applied data shift at sigma {}".format(config.datashift.sigma)
-        )
-
-    train_dataloader = torch.utils.data.DataLoader(
-        train_dataset,
-        batch_size=config.trainer.batch_size,
-        num_workers=num_workers,
-        pin_memory=False,
-    )
-    val_dataloader = torch.utils.data.DataLoader(
-        val_dataset,
-        batch_size=config.trainer.batch_size,
-        num_workers=num_workers,
-        pin_memory=False,
-    )
-
-    test_dataloader = torch.utils.data.DataLoader(
-        test_dataset,
-        batch_size=config.trainer.batch_size,
-        num_workers=num_workers,
-        pin_memory=False,
-    )
-    if model_type == "disentangle":
-        ouput_log_sigma = False
-        ensemble = StochasticEnsembleClassifier(
-            StochasticMultiLayerClassifier,
-            ouput_log_sigma,  # log_sigma <- False
-            config.model.ensemble_size,
-            len(ps_columns),
-            2,
-            neurons=config.model.num_neurons,
-            dropouts=config.model.dropout_ratios,
-            activation=torch.nn.LeakyReLU(),
-        )
-        trainer = StochasticEnsembleTrainer(
-            ensemble,
-            criteria=None,
-            lr_scheduler=None,
-            max_iter=config.trainer.max_iter,
-            init_lr=config.trainer.optimizer.init_lr,
-            device=device,
-            checkpoint=ckpt,
-            earlystopping=None,
-            n_samples=config.trainer.aleatoric_samples,
-            ouput_log_sigma=ouput_log_sigma,
-        )
-    elif model_type == "predictive":
-        raise ValueError("model type {} not supported".format(model_type))
-        # ensemble = EnsembleClassifier(
-        #     config.model.ensemble_size,
-        #     len(ps_columns),
-        #     2,
-        #     neurons=config.model.num_neurons,
-        #     dropouts=config.model.dropout_ratios,
-        #     activation=torch.nn.LeakyReLU(),
-        # )
-        # trainer = EnsembleTrainer(
-        #     ensemble,
-        #     criteria=None,
-        #     lr_scheduler=None,
-        #     max_iter=config.trainer.max_iter,
-        #     init_lr=config.trainer.optimizer.init_lr,
-        #     device=device,
-        #     checkpoint=ckpt,
-        #     earlystopping=None,
-        # )
-    else:
-        raise ValueError(
-            "model type {} is not in [disentangle, predictive]".format(model_type)
-        )
-
-    try:
-        ensemble, _ = trainer.load_checkpoint()
-        logger.info("use the ensemble model from checkpoint, no training")
-    except FileNotFoundError as err:
-        raise ValueError(
-            "failed to load pre-trained ensemble model from checkpoint at {}".format(
-                config.trainer_checkpoint_dir_path
-            )
-        ) from err
-    return train_dataloader, val_dataloader, test_dataloader, ensemble
-
 
 def set_zero_to_nextafter(proba: torch.Tensor):
     proba[proba == 0] = torch.nextafter(torch.tensor(0.0), torch.tensor(1.0))
@@ -207,7 +56,8 @@ def compute_ece(predicted_proba_tensor, test_label_tensor):
         updated_predicted_proba_tensor = set_zero_to_nextafter(
             predicted_proba_tensor[:, 1].contiguous()
         )
-        # ece = binary_calibration_error(updated_predicted_proba_tensor, test_label_tensor, n_bins=15, norm='l1')
+        # ece = binary_calibration_error(
+        #   updated_predicted_proba_tensor, test_label_tensor, n_bins=15, norm='l1')
         ece = torchmetrics.functional.classification.binary_calibration_error(
             updated_predicted_proba_tensor, test_label_tensor, n_bins=15, norm="l1"
         )
@@ -269,12 +119,19 @@ def compute_uq_eval_metrics(
     auroc = torchmetrics.functional.classification.binary_auroc(
         proba_contiguous, test_label_tensor, thresholds=None
     )
-    # ece = torchmetrics.functional.classification.binary_calibration_error(predicted_confidence_tensor, test_label_tensor, n_bins=15, norm='l1')
-    # ece = torchmetrics.functional.classification.binary_calibration_error(predicted_proba_tensor[:, 1].contiguous(), test_label_tensor, n_bins=15, norm='l1')
-    # ece = binary_calibration_error(predicted_proba_tensor[:, 1].contiguous(), test_label_tensor, n_bins=15, norm='l1')
-    # updated_predicted_proba_tensor = set_zero_to_nextafter(predicted_proba_tensor[:, 1].contiguous())
-    # # ece = binary_calibration_error(updated_predicted_proba_tensor, test_label_tensor, n_bins=15, norm='l1')
-    # ece = torchmetrics.functional.classification.binary_calibration_error(updated_predicted_proba_tensor, test_label_tensor, n_bins=15, norm='l1')
+    # ece = torchmetrics.functional.classification.binary_calibration_error(
+    #   predicted_confidence_tensor, test_label_tensor, n_bins=15, norm='l1')
+    # ece = torchmetrics.functional.classification.binary_calibration_error(
+    #   predicted_proba_tensor[:, 1].contiguous(),
+    #   test_label_tensor, n_bins=15, norm='l1')
+    # ece = binary_calibration_error(predicted_proba_tensor[:, 1].contiguous(),
+    #   test_label_tensor, n_bins=15, norm='l1')
+    # updated_predicted_proba_tensor = set_zero_to_nextafter(
+    #   predicted_proba_tensor[:, 1].contiguous())
+    # # ece = binary_calibration_error(updated_predicted_proba_tensor,
+    #   test_label_tensor, n_bins=15, norm='l1')
+    # ece = torchmetrics.functional.classification.binary_calibration_error(
+    #   updated_predicted_proba_tensor, test_label_tensor, n_bins=15, norm='l1')
     ece = compute_ece(predicted_proba_tensor, test_label_tensor)
     score = brier_score_from_tensors(
         get_one_hot_label(test_label_tensor, num_classes=2), predicted_proba_tensor
@@ -291,12 +148,12 @@ def compute_uq_eval_metrics(
         acc_list, count_list = compute_binary_acc_vs_conf_from_tensors(
             predicted_proba_tensor, test_label_tensor, thresholds=conf_thresholds
         )
-    logger.debug("unique test labels: {}".format(test_label_tensor.unique()))
-    logger.debug("y -> {}".format(test_label_tensor))
-    logger.debug("y_pred -> {}".format(predicted_label_tensor))
-    logger.debug("y | y == 1 -> {}".format(test_label_tensor[test_label_tensor == 1]))
+    logger.debug("unique test labels: %s", str(test_label_tensor.unique()))
+    logger.debug("y -> %s", str(test_label_tensor))
+    logger.debug("y_pred -> %s", str(predicted_label_tensor))
+    logger.debug("y | y == 1 -> %s", str(test_label_tensor[test_label_tensor == 1]))
     logger.debug(
-        "y_pred | y == 1 -> {}".format(predicted_label_tensor[test_label_tensor == 1])
+        "y_pred | y == 1 -> %s", str(predicted_label_tensor[test_label_tensor == 1])
     )
     logger.debug(f"acc: {acc}")
     logger.debug(f"precision:{precision}")
@@ -352,7 +209,7 @@ def compute_uq_eval_metrics(
     else:
         result_dict["acc_list"] = [a.item() for a in acc_list]
     result_dict["count_list"] = count_list
-    logger.info("result_dict = {}".format(result_dict_to_json(result_dict)))
+    logger.info("result_dict = %s", result_dict_to_json(result_dict))
 
     return result_dict
 
@@ -373,6 +230,7 @@ def result_dict_to_json(result_dict):
 
 
 class EnsembleUq(object):
+    """Ensemble UQ."""
     def __init__(
         self, ensemble: EnsembleClassifier, data_loader: torch.utils.data.DataLoader
     ):
@@ -388,6 +246,7 @@ class EnsembleUq(object):
 
 
 class DropoutUq(object):
+    """"Dropout UQ."""
     def __init__(
         self,
         dropout_model: DropoutClassifier,
@@ -410,6 +269,7 @@ class DropoutUq(object):
 
 
 class VanillaUq(object):
+    """Vanilla UQ (predictive confidence only)."""
     def __init__(
         self, vanilla_model: VanillaClassifier, data_loader: torch.utils.data.DataLoader
     ):
@@ -426,19 +286,20 @@ class VanillaUq(object):
 
 
 class EnsembleDisentangledUq(object):
+    """Compute disentagled UQ."""
     def __init__(
         self,
         ensemble: StochasticEnsembleClassifier,
         data_loader: torch.utils.data.DataLoader,
         n_aleatoric_samples: int,
         device: torch.device = None,
-        mp: bool = True,
+        use_mp: bool = True,
     ):
         self.ensemble = ensemble
         self.ensemble_size = len(ensemble)
         self.data_loader = data_loader
         self.n_aleatoric_samples = n_aleatoric_samples
-        self.mp = mp
+        self.mp = use_mp
         if device:
             self.device = device
         else:
@@ -457,7 +318,7 @@ class EnsembleDisentangledUq(object):
     def _fit(self, model_idx, batch_idx, model, input_ids, attention_mask, device=None):
         torch.cuda.empty_cache()
         if device is None:
-            logger.debug("eval for model {} with batch {}".format(model_idx, batch_idx))
+            logger.debug("eval for model %d with batch %d", model_idx, batch_idx)
             model = model.to(self.device)
             input_ids = input_ids.to(self.device)
             attention_mask = attention_mask.to(self.device)
@@ -482,7 +343,7 @@ class EnsembleDisentangledUq(object):
         rtn_dict,
     ):
         init_logging(logfilename, append=True)
-        logger.debug("eval for model {} with batch {}".format(model_idx, batch_idx))
+        logger.debug("eval for model %d with batch %d", model_idx, batch_idx)
         # print('eval for model {} with batch {}'.format(model_idx, batch_idx))
         model = model.to(self.device)
         input_ids = input_ids.to(self.device)
@@ -494,7 +355,7 @@ class EnsembleDisentangledUq(object):
         model.train()
 
     def _cpu_batch_fit(self, model_idx, batch_idx, model, input_ids, attention_mask):
-        logger.debug("eval for model {} with batch {}".format(model_idx, batch_idx))
+        logger.debug("eval for model %d with batch %d", model_idx, batch_idx)
         # device = torch.device("cpu")
         # model = model.to(device)
         # input_ids = input_ids.to(device)
@@ -563,7 +424,8 @@ class EnsembleDisentangledUq(object):
                 #     break
                 # model = model.to(self.device)
                 # model.eval()
-                # mu_tmp, sigma_tmp = model(input_ids=input_ids, attention_mask=attention_mask)
+                # mu_tmp, sigma_tmp = model(input_ids=input_ids,
+                #   attention_mask=attention_mask)
                 # mu_model_list[model_idx] = mu_tmp
                 # sigma_model_list[model_idx] = sigma_tmp
                 # model.train()
@@ -620,7 +482,7 @@ class EnsembleDisentangledUq(object):
         sigma_batches = rtn_dict["sigma_batches"].detach().cpu()
         return mu_batches, sigma_batches
 
-    def _member_model_logits_q(self, dataloader, model, n_batches, device, queue):
+    def _member_model_logits_q(self, dataloader, model, device, queue):
         model = model.to(device)
         model.eval()
         # mu_batch_list, sigma_batch_list = [None]*n_batches, [None]*n_batches
@@ -715,7 +577,7 @@ class EnsembleDisentangledUq(object):
         mu_mean = torch.mean(mu_batches, dim=-1)
         return mu_mean, sigma_aleatoric, sigma_epistermic, mu_batches, sigma_batches
 
-    def compute_uq_logits(self):
+    def compute_uq_logits(self, no_progress_bar=False):
         """
         Compute aleatoic, epistermic uncertainty (all in logits).
         """
@@ -724,12 +586,21 @@ class EnsembleDisentangledUq(object):
             None
         ] * self.ensemble_size
         # mu_model_list, sigma_model_list = [None]*3, [None]*3
-        for model_idx, model in enumerate(self.ensemble):
+        for model_idx, model in enumerate(
+            tqdm(self.ensemble, desc="Ensemble UQ", unit="mo", disable=no_progress_bar)
+        ):
             # if model_idx > 2:
             #     break
             mu_batch_list, sigma_batch_list = [None] * n_batches, [None] * n_batches
             # mu_batch_list, sigma_batch_list = [None]*6, [None]*6
-            for batch_idx, batch in enumerate(self.data_loader):
+            for batch_idx, batch in enumerate(
+                tqdm(
+                    self.data_loader,
+                    desc=f"UQ - model {model_idx}",
+                    unit="batch",
+                    disable=no_progress_bar,
+                )
+            ):
                 # if batch_idx >= 6:
                 #     break
                 input_ids, attention_mask, _ = batch

@@ -182,7 +182,7 @@ def compute_eval_metrics(
         test_dataloader,
         config.trainer.aleatoric_samples,
         device=config.device,
-        mp=True,
+        use_mp=True,
     )
     (
         proba_std_aleatoric,

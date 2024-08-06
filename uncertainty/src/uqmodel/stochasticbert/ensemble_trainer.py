@@ -1,3 +1,4 @@
+"""Ensemble trainer."""
 import logging
 from typing import List, Tuple, Union
 
@@ -62,9 +63,7 @@ def get_train_optimizer(
     elif optimizer_config.optimizer == "AdamW":
         optimizer = torch.optim.Adam(model.parameters(), lr=optimizer_config.init_lr)
     else:
-        raise ValueError(
-            f"unsupported loss function {optimizer_config.optimizer}"
-        )
+        raise ValueError(f"unsupported loss function {optimizer_config.optimizer}")
     return optimizer
 
 
@@ -79,13 +78,12 @@ def get_train_lr_scheduler(
             gamma=lr_scheduler_config.gamma,
         )
     else:
-        raise ValueError(
-            f"unsupported lr_scheduler {lr_scheduler_config.scheduler}"
-        )
+        raise ValueError(f"unsupported lr_scheduler {lr_scheduler_config.scheduler}")
     return lr_scheduler
 
 
 class StochasticBertTrainer:
+    """Trainer for StochasticBert classifier."""
     summary_writer: Union[tensorboard.SummaryWriter, None]
 
     def __init__(
@@ -117,7 +115,7 @@ class StochasticBertTrainer:
         )
         self.val_dataloader = torch.utils.data.DataLoader(
             datasets.val_dataset,
-            batch_size=trainer_config.batch_size,
+            batch_size=trainer_config.val_batch_size,
             num_workers=trainer_config.num_dataloader_workers,
             pin_memory=trainer_config.pin_memory,
         )
@@ -204,7 +202,8 @@ class StochasticBertTrainer:
             if torch.isnan(loss):
                 logger.warning(
                     "loss is nan at epoch %d for training batch_idx %d",
-                        epoch, batch_idx
+                    epoch,
+                    batch_idx,
                 )
             total_train_loss += loss.item()
             total_train_correct += self._get_num_correct(logits, targets)
@@ -238,7 +237,8 @@ class StochasticBertTrainer:
                 if torch.isnan(loss):
                     logger.warning(
                         "loss is nan at epoch %d for validation batch_idx %d",
-                            epoch, batch_idx
+                        epoch,
+                        batch_idx,
                     )
                 total_val_correct += self._get_num_correct(logits, targets)
                 total_val_loss += loss.item()
@@ -253,11 +253,7 @@ class StochasticBertTrainer:
         )
         old_usage = torch.cuda.memory_allocated(device=self.device)
         self.model = self.model.to(self.device, non_blocking=self.pin_memory)
-        tqdm_iterator = tqdm(
-            range(self.max_iter),
-            desc=f"model_{self.model_idx}",
-            position=1 + self.model_idx,
-        )
+        tqdm_iterator = tqdm(range(self.max_iter), desc=f"Fit Model_{self.model_idx}")
         # tqdm_iterator = tqdm(range(self.max_iter))
         for epoch in tqdm_iterator:
             total_train_loss, train_acc = self._train_epoch(epoch)
@@ -266,13 +262,17 @@ class StochasticBertTrainer:
             mean_val_loss = total_val_loss / len(self.val_dataloader.dataset)
 
             logger.info(
-                "epoch: %d, learning_rate: %s, total_train_loss: %f, total_val_loss: %f, train_acc: %f, val_acc: %f",
-                    epoch,
-                    str(self.lr_scheduler.get_last_lr()),
-                    total_train_loss,
-                    total_val_loss,
-                    train_acc,
-                    val_acc
+                (
+                    "epoch: %d, learning_rate: %s, "
+                    "total_train_loss: %f, total_val_loss: %f, "
+                    "train_acc: %f, val_acc: %f"
+                ),
+                epoch,
+                str(self.lr_scheduler.get_last_lr()),
+                total_train_loss,
+                total_val_loss,
+                train_acc,
+                val_acc,
             )
 
             self._log_tb_training_summary(
@@ -310,7 +310,9 @@ class StochasticBertTrainer:
         new_usage = torch.cuda.memory_allocated(device=self.device)
         logger.info(
             "Model %d: CUDA memory allocation %d -> %d",
-                self.model_idx, old_usage, new_usage
+            self.model_idx,
+            old_usage,
+            new_usage,
         )
         logger.info("completed training of member model %d", self.model_idx)
         return self.model
@@ -385,8 +387,7 @@ class StochasticEnsembleTrainer:
         for model_idx, model in tqdm(
             enumerate(self.ensemble_classifier),
             total=len(self.ensemble_classifier),
-            position=0,
-            desc="ensemble",
+            desc="Fit Ensemble",
         ):
             # for model_idx,model in enumerate(self.ensemble_classifier):
             logger.info("begin to train model %d", model_idx)
@@ -428,7 +429,7 @@ class StochasticEnsembleTrainer:
                 self.checkpoint.save_datasets(
                     self.datasets.train_dataset,
                     self.datasets.val_dataset,
-                    self.datasets.test_dataset
+                    self.datasets.test_dataset,
                 )
         return self.ensemble_classifier
 

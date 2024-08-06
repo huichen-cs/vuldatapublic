@@ -371,6 +371,17 @@ def run_data_select_experiment(
         config.trainer.use_model = "use_checkpoint"
         logger.info("set config.trainer.use_model to '%s'", config.trainer.use_model)
 
+    if config.trainer.use_data != "use_checkpoint":
+        logger.warning(
+            (
+                "Invalid value for config.trainer.use_data, "
+                "expected 'use_checkpoint', but saw '%s'."
+            ),
+            config.trainer.use_data,
+        )
+        config.trainer.use_data = "use_checkpoint"
+        logger.info("set config.trainer.use_data to '%s'", config.trainer.use_data)
+
     # load VCM data from checkpoint - not really being used
     experiment_datasets = BertExperimentDatasets(
         config,
@@ -412,11 +423,13 @@ def run_data_select_experiment(
         - size * (len(linevul_experiment_datasets.pool_dataset) // N_PARTS)
         for size in range(N_PARTS)
     ]
+    
+    # prepare run_datasets to run active learning cycle
+    run_datasets = deepcopy(linevul_experiment_datasets)
     for step, selection_size in tqdm(
         zip(range(N_PARTS), selection_size_list), "data selection"
     ):
         # preseve the experiment_datasets
-        run_datasets = deepcopy(linevul_experiment_datasets)
         logger.info(
             (
                 "do step %d with selection_size %d for "
@@ -430,10 +443,10 @@ def run_data_select_experiment(
         )
 
         # prepare dataloader and compute UQ for pool_dataset
-        trainer_batch_size = config.trainer.batch_size
-        if linevul_config.infer_batch_size > config.trainer.batch_size:
+        # trainer_batch_size = config.trainer.batch_size
+        if linevul_config.infer_batch_size > config.trainer.infer_batch_size:
             #  used by data loader
-            config.trainer.batch_size = linevul_config.infer_batch_size
+            config.trainer.infer_batch_size = linevul_config.infer_batch_size
             logger.debug(
                 "to compute UQ with batch size %d at step %d",
                 config.trainer.batch_size,
@@ -449,14 +462,26 @@ def run_data_select_experiment(
                 "N(run_dataloaders.pool_dataloder): %d"
             ),
             linevul_config.method,
-            sum(len(batch[0]) for batch in run_dataloaders.run_dataloader),
-            sum(len(batch[0]) for batch in run_dataloaders.val_dataloader),
-            sum(len(batch[0]) for batch in run_dataloaders.pool_dataloader),
+            len(run_dataloaders.run_dataloader.dataset),
+            len(run_dataloaders.val_dataloader.dataset),
+            len(run_dataloaders.pool_dataloader.dataset)
         )
 
+        #### DEBUG ####(
+        # if not os.path.exists(f"entropy_epistermic_{step}.pt"):
+        #     entropy_epistermic, entropy_aleatoric = compute_data_pool_uq_metrics(
+        #         config, ensemble, run_dataloaders
+        #     )
+        #     torch.save(entropy_epistermic, f'entropy_epistermic_{step}.pt')
+        #     torch.save(entropy_aleatoric, f'entropy_aleatoric_{step}.pt')
+        # else:
+        #     entropy_epistermic = torch.load(f'entropy_epistermic_{step}.pt')
+        #     entropy_aleatoric = torch.load(f'entropy_aleatoric_{step}.pt')
+        #### DEBUG ####)
         entropy_epistermic, entropy_aleatoric = compute_data_pool_uq_metrics(
             config, ensemble, run_dataloaders
         )
+
         logger.info(
             (
                 "computed uq for %s at %d with "
@@ -472,7 +497,7 @@ def run_data_select_experiment(
             len(run_datasets.val_dataset),
             len(run_datasets.pool_dataset),
         )
-        config.trainer.batch_size = trainer_batch_size
+        # config.trainer.batch_size = trainer_batch_size
 
         # select data
         logger.info(
@@ -493,15 +518,15 @@ def run_data_select_experiment(
             (
                 "updated rundataset with %s method at step %d: "
                 "N(train_dataset)=%d, N(run_dataset)=%d, N(pool_dataset)=%d",
-                linevul_config.data_select_method,
-                step,
-                len(run_datasets.train_dataset) ,
-                len(run_datasets.run_dataset),
-                len(run_datasets.pool_dataset)
-             ),
+            ),
+            linevul_config.data_select_method,
+            step,
+            len(run_datasets.train_dataset),
+            len(run_datasets.run_dataset),
+            len(run_datasets.pool_dataset)
         )
 
-        # retrain model and save the model with new tag
+        # save the model with new tag
         logger.info(
             (
                 "to retrain model with new selected data at step %d "
@@ -514,7 +539,19 @@ def run_data_select_experiment(
         run_datasets.update_checkpoint(
             f"linevul_{step}_{linevul_config.data_select_method}"
         )
+        save_selection_result(run_datasets.run_dataset, linevul_config, step)
+        
+        # retrain model using the run_dataset as train dataset
         run_datasets.train_dataset = deepcopy(run_datasets.run_dataset)
+
+        #### DEBUG ####(        
+        # n_pool = len(run_datasets.pool_dataset)
+        # torch.save(torch.rand(n_pool), f'entropy_epistermic_{step+1}.pt')
+        # torch.save(torch.rand(n_pool), f'entropy_aleatoric_{step+1}.pt')
+        
+        # if not os.path.exists(f"entropy_epistermic_{step+1}.pt"):
+        #     ensemble = get_trained_ensemble_model(config, run_datasets, load_trained=False)
+        #### DEBUG ####)
         ensemble = get_trained_ensemble_model(config, run_datasets, load_trained=False)
         logger.info(
             (
@@ -526,7 +563,6 @@ def run_data_select_experiment(
             len(run_datasets.run_dataset),
             len(run_datasets.pool_dataset),
         )
-        save_selection_result(run_datasets.run_dataset, linevul_config, step)
     logger.info("Done")
 
 
@@ -544,7 +580,7 @@ def save_selection_result(result_dataset, linevul_config, step):
 
 
 if __name__ == "__main__":
-    init_logging(__file__, append=False)
+    init_logging(__file__, append=True)
 
     exp_config, linevul_exp_config = setup_experiment()
 
