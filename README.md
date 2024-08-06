@@ -1,4 +1,4 @@
-# Quantifying the Uncertainty in Software Vulnerability Patch Data
+# Improving Data Curation of Software Vulnerability Patches through Uncertainty Quantification
 
 This repository contains the replication package and supplementary material for the titled research.
 To replicate the results in our paper, please examine the experiment environment and the catalog of
