@@ -1,6 +1,116 @@
 # Quantifying the Uncertainty in Software Vulnerability Patch Data
 
 This repository contains the replication package and supplementary material for the titled research.
+To replicate the results in our paper, please examine the experiment environment and the catalog of
+the files. With a proper experiment environment and the files downloaded from Dropbox and Google Drive,
+you can reproduce the results.
+
+## RQ1
+
+### Selecting UQ Model
+
+This is to study how the UQ model responses to data quality shift. For instance, using VCMatch data, we
+go through the train and evaluation phases. 
+
+1. Train the UQ model by running
+
+   ```
+   htsc_ps_vcmdata_shift_train.py
+
+   ```
+2. Evaluate the UQ model by running
+   ```
+   htsc_ps_vcmdata_shift_ensemble_eval.py
+   ```
+
+
+### Knowledge vs. Quality
+
+For instance, this is to run
+```
+hmsc_ps_vcmdata_shift_dvol_test.py
+```
+
+
+
+## RQ2
+
+### RQ2 Data Curation (SAP and VCMatch)
+
+
+#### SAP Data
+1. Run `htsc_bert_sapdata_active_learn_train_ext.py` to train data curation model using the SAP data.
+2. Run `htsc_bert_sapdata_active_learn_eval_ext.py` to evaluate the data curation model.
+
+
+#### VCMatch Data
+1. Run `htsc_ps_vcmdata_active_learn_train_ext.py` to train data curation model using the VCMatch data.
+2. Run `htsc_ps_vcmdata_active_learn_eval_ext.py` to evaluate the data curation model.
+
+
+### RQ2 Software Vulnerability Prediction (LineVul Model)
+
+1. Download the data including selected subset of the data that yields better F1 with far less
+   computation time
+
+   [Download data from Google Drive (1.73GB)](https://drive.google.com/file/d/13NVz5rvOUNZkwr_BKvDh3grRZtAYyQ6F/view?usp=sharing)
+
+2. Download the saved model checkpoint (data selection = 50%)
+
+   [Download LineVul model checkpoint (951MB)](https://drive.google.com/file/d/1y1rM4Gx5Sshpy9H74i4v5E_d3nYgrhHt/view?usp=sharing)
+
+3. Obtain LineVul
+
+   [LineVul Github Repository](https://github.com/awsm-research/LineVul.git)
+
+4. Run LineVul inference upon extracting downloaded data and model checkpoint, assuming the data and the model
+   checkpoint are extracted under the `linevul` directory in the LineVul repository:
+
+   ```bash
+   python linevul_main.py \
+    --model_name=model.bin \
+    --output_dir=./saved_models_vcm_ehal_max_4 \
+    --model_type=roberta \
+    --tokenizer_name=microsoft/codebert-base \
+    --model_name_or_path=microsoft/codebert-base \
+    --do_test \
+    --train_data_file=LineVulCommits/splits/random/selection40/vcm_9_linevul_4_ehal_max.pt.csv \
+    --eval_data_file=LineVulCommits/splits/random/func_val.csv \
+    --test_data_file=LineVulCommits/splits/random/func_test.csv \
+    --block_size 512 \
+    --eval_batch_size 512
+   ```
+
+#### Complete Pipeline
+The replication package contains scripts that run the complete pipeline to produce the results for the
+figure shown below.
+
+
+![alt Improving Vulnerability Prediction](RQ2_LineVul.png)
+
+
+1. Train a UQ model (VCMatch model) using VCMatch data (in c/c++, matching LineVul), run
+   ```
+   htsc_bert_vcmdata_active_learn_train_ext.py
+   ```
+2. Select LineVul commit patches ata based on VCMatch model's knowledge and data quality assessment based on UQ:
+   ```
+   htsc_linevul_activelearn_data_select_retrain.py
+   ```
+3. Generate function-level data that LineVul requires from the selected LineVul commit patches
+   ```
+   htsc_linevul_activelearn_train_data_file.py
+   ```
+4. Train a LineVul data with the generated functional data
+5. Test the LineVul model (inference)
+
+<!-- ## Online Supplement
+
+There is a supplementary document to the named research. Find it at in [Dropbox](
+https://www.dropbox.com/scl/fi/d2kn6bf901l7x6z1piqy5/main.pdf?rlkey=1apkyxrml2pektw2xd4wzzpzc&dl=0
+) -->
+
+
 
 ## Environment
 The programs are written in Python and are tested in several Linux system
@@ -48,7 +158,6 @@ we can retrieve the help message:
 ```bash
 PYTHONPATH=uncertainty/src python uncertainty/src/hmsc_bert_sapdata_shift_train.py --help
 ```
-
 ## File Catalog
 
 ## Bash Shell Scripts
@@ -151,9 +260,3 @@ However, in this way, changing one wouldn't break long-running experiments done 
 | RQ1: Dataset Quality Shift|Heteroscedastic|Model Ensemble|CodeBert|SAP|run_htsc_bertsap_gn_shift_train.sh|htsc_bert_sapdata_shift_train.py|uqmodel.ensemble|
 | RQ1: Dataset Quality Shift|Heteroscedastic|Monte Carlo Dropout|CodeBert|SAP|run_htsc_bertsap_gn_shift_train.sh|htsc_bert_sapdata_shift_train.py|uqmodel.ensemble|
 | RQ1: Dataset Quality Shift|Heteroscedastic|Vanilla|CodeBert|SAP|run_htsc_bertsap_gn_shift_train.sh|htsc_bert_sapdata_shift_train.py|uqmodel.ensemble| -->
-
-## Online Supplement
-
-There is a supplementary document to the named research. Find it at in [Dropbox](
-https://www.dropbox.com/scl/fi/d2kn6bf901l7x6z1piqy5/main.pdf?rlkey=1apkyxrml2pektw2xd4wzzpzc&dl=0
-)
