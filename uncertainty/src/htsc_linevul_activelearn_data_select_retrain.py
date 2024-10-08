@@ -34,6 +34,7 @@ class LineVulExperimentConfig:
         self.data_select_method = "ehal_max"
         self.infer_batch_size = 128
         self.model_index = 0
+        self.method=self.data_select_method
 
     def from_cmdline(self, args: argparse.Namespace):
         self.input_file = args.linevul_input_file

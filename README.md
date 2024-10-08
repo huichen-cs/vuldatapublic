@@ -86,7 +86,9 @@ The replication package contains scripts that run the complete pipeline to produ
 figure shown below.
 
 
-![alt Improving Vulnerability Prediction](RQ2_LineVul.png)
+![alt Improving Vulnerability Prediction (Computation Time and F1)](RQ2_LineVul.png)
+
+![alt Improving Vulnerability Prediction (EHAL Data Curation vs. Random)](RQ2_LineVul_2.png)
 
 
 1. Train a UQ model (VCMatch model) using VCMatch data (in c/c++, matching LineVul), run
